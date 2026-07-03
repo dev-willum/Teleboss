@@ -449,20 +449,21 @@ function clubBudget(t){return Math.max(5,Math.round((TEAMS[t].str-55)*3+15));}
 function newGame(teamIdx){
   ensureSquadData();
   const div=teamIdx<DIV1_SIZE?1:2;
-  state={v:7,teamIdx,season:1,tactic:'BAL',speed:'x2',formation:'442',
+  state={v:9,teamIdx,season:1,tactic:'BAL',speed:'x2',formation:'442',
     budget:clubBudget(teamIdx),market:[],
     div:TEAMS.map((_,i)=>i<DIV1_SIZE?1:i<DIV2_SIZE?2:3),
     sp:0,cup:null,conf:60,news:[],sacked:false,
     rep:div===1?30:15,offer:null,honours:[],snd:true,euro:null,lineup:[],rejected:{},
-    freeAgents:[],target:null,tots:[],
+    freeAgents:[],target:null,tots:[],loans:{out:[]},
+    facilities:{stadium:1,training:1,youth:1},career:{p:0,w:0,d:0,l:0,gf:0,ga:0},
     squads:TEAMS.map(t=>t.p.map(([name,pos,rat,age])=>
-      ({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,contract:1+rnd(4)})))};
+      ({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)})))};
   state.fx={1:genFixtures(divTeams(1)),2:genFixtures(divTeams(2))};
   state.res={1:[],2:[]};
   state.cup=initCup();
   state.schedule=buildSchedule(false);
   state.target=computeTarget();
-  autoPick();refreshListings();save();go(300);
+  autoPick();refreshListings();refreshLoanListings();save();go(300);
 }
 function goldenBoot(){
   let best=null,g=0;
@@ -503,7 +504,7 @@ function signFreeAgent(idx){
   if(mySquad().length>=20){msg='SQUAD FULL (MAX 20)';render();return;}
   state.freeAgents.splice(idx,1);
   mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:0,inj:0,sus:0,age:p.age,
-    listed:false,contract:2+rnd(2)});
+    listed:false,loanListed:false,yellows:0,contract:2+rnd(2)});
   msg=p.name+' SIGNED ON A FREE TRANSFER!';
   addNews(p.name+' JOINS '+TEAMS[state.teamIdx].n+' ON A FREE TRANSFER');
   save();render();
@@ -512,6 +513,18 @@ function rivalManagerNews(){
   if(Math.random()>=0.03)return;
   const pool=divTeams(1).concat(divTeams(2)).filter(i=>i!==state.teamIdx);
   addNews(TEAMS[pick(pool)].n+' SACK THEIR MANAGER');
+}
+function internationalNews(){
+  if(Math.random()>=0.05)return;
+  const stars=mySquad().filter(p=>p.rat>=78&&avail(p));
+  if(!stars.length)return;
+  const p=pick(stars);
+  addNews(p.name+' CALLED UP FOR INTERNATIONAL DUTY');
+  if(Math.random()<0.12){
+    const days=1+rnd(2);
+    p.inj=Math.max(p.inj,days);
+    addNews(p.name+' PICKS UP A KNOCK ON INTERNATIONAL DUTY - OUT '+days+' MD');
+  }
 }
 function newSeason(){
   const wasDiv=myDiv(),pos=myPos(wasDiv),wonCup=state.cup.winner===state.teamIdx;
@@ -563,10 +576,25 @@ function newSeason(){
     if(i===state.teamIdx){userRelegatedToL1=true;return;}
     const old=TEAMS[i].n,[nn,cc,ss]=l1Draw.pop()||pick(L1_POOL);
     TEAMS[i].n=nn;TEAMS[i].c=cc;TEAMS[i].str=ss;TEAMS[i].p=genSquad(ss,false);
-    state.squads[i]=TEAMS[i].p.map(([name,pos,rat,age])=>({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,contract:1+rnd(4)}));
+    state.squads[i]=TEAMS[i].p.map(([name,pos,rat,age])=>({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)}));
     state.div[i]=2;
     addNews(old+' RELEGATED TO LEAGUE ONE - REPLACED BY '+nn);
   });
+
+  // loan spells end at the close of the season
+  mySquad().slice().forEach(p=>{
+    if(p.onLoanFrom==null)return;
+    const from=p.onLoanFrom,idx=mySquad().indexOf(p);
+    mySquad().splice(idx,1);
+    delete p.onLoanFrom;
+    state.squads[from].push(p);
+    addNews(p.name+' RETURNS TO '+TEAMS[from].n+' FROM LOAN');
+  });
+  state.loans.out.forEach(p=>{
+    mySquad().push(p);
+    addNews(p.name+' RETURNS FROM LOAN');
+  });
+  state.loans.out=[];
 
   // ageing, development, retirements, youth intake, contract expiry
   const retired=[],departedFree=[];
@@ -574,13 +602,14 @@ function newSeason(){
     for(let i=sq.length-1;i>=0;i--){
       const p=sq[i];
       p.age++;
-      if(p.age<=23)p.rat=clamp(p.rat+rnd(3),40,95);
-      else if(p.age<=29)p.rat=clamp(p.rat+rnd(3)-1,40,95);
-      else p.rat=clamp(p.rat-rnd(3),40,95);
+      const trainBoost=ti===state.teamIdx?Math.floor((state.facilities.training-1)/2):0;
+      if(p.age<=23)p.rat=clamp(p.rat+rnd(3)+trainBoost,40,95);
+      else if(p.age<=29)p.rat=clamp(p.rat+rnd(3)-1+trainBoost,40,95);
+      else p.rat=clamp(p.rat-rnd(3)+Math.floor(trainBoost/2),40,95);
       p.contract=(p.contract||1)-1;
       if(p.age>=35||(p.age>=33&&p.rat<62&&Math.random()<0.5)){
         if(ti===state.teamIdx)retired.push(p.name);
-        sq[i]=youth(p.pos,TEAMS[ti].str,sq);
+        sq[i]=youth(p.pos,TEAMS[ti].str,sq,ti===state.teamIdx?state.facilities.youth-1:0);
         continue;
       }
       if(p.contract<=0){
@@ -594,7 +623,7 @@ function newSeason(){
         }else p.contract=2+rnd(3);
       }
     }
-    sq.forEach(p=>{p.goals=0;p.form=0;p.inj=0;p.sus=0;});
+    sq.forEach(p=>{p.goals=0;p.form=0;p.inj=0;p.sus=0;p.yellows=0;});
   });
   retired.forEach(n=>addNews(n+' RETIRES. YOUTH PROMOTED'));
   departedFree.forEach(n=>addNews(n+' LEAVES ON A FREE TRANSFER - CONTRACT EXPIRED'));
@@ -624,12 +653,12 @@ function newSeason(){
   state.schedule=buildSchedule(!!state.euro);
   state.sp=0;
   state.conf=clamp(state.conf,40,80);state.rejected={};
-  autoPick();refreshListings();live=null;save();go(300);
+  autoPick();refreshListings();refreshLoanListings();live=null;save();go(300);
 }
 function resetAll(){localStorage.removeItem('teleboss_pl');state=null;live=null;go(300);}
 function save(){try{localStorage.setItem('teleboss_pl',JSON.stringify(state));}catch(e){}}
 function loadGame(){
-  try{const s=JSON.parse(localStorage.getItem('teleboss_pl'));if(s&&s.v===7)state=s;}catch(e){}
+  try{const s=JSON.parse(localStorage.getItem('teleboss_pl'));if(s&&s.v===9)state=s;}catch(e){}
 }
 function manualSave(){
   save();
@@ -706,10 +735,10 @@ const YSUR=['ASHFORD','BRIGGS','CALLOW','DACRE','EMSWORTH','FENWICK','GRICE','HA
 const EURO_SUR=['MULLER','GARCIA','ROSSI','DUBOIS','SILVA','KOVAC','NILSSON','JANSEN','SANTOS',
  'FERREIRA','NOVAK','PETROV','SCHMIDT','MARTIN','LOPEZ','BERGER','HANSEN','KOWALSKI','MORALES','VIDAL'];
 let pend=null,msg='';
-function youth(pos,str,sq){
+function youth(pos,str,sq,academyBoost){
   let name,guard=0;
   do{name=YINIT[rnd(YINIT.length)]+'.'+pick(YSUR);}while(sq.some(p=>p.name===name)&&guard++<50);
-  return {name,pos,rat:clamp(str-12+rnd(9),40,80),form:0,goals:0,inj:0,sus:0,age:17+rnd(2),listed:false,contract:3+rnd(3)};
+  return {name,pos,rat:clamp(str-12+rnd(9)+(academyBoost||0)*2,40,88),form:0,goals:0,inj:0,sus:0,age:17+rnd(2),listed:false,loanListed:false,yellows:0,contract:3+rnd(3)};
 }
 function setForm(k){state.formation=k;autoPick();save();render();}
 function tglSnd(){state.snd=!state.snd;save();render();}
@@ -742,7 +771,7 @@ function acceptJob(){
   state.teamIdx=o.t;
   state.budget=clubBudget(o.t)+state.rep;
   state.conf=55;state.offer=null;
-  autoPick();refreshListings();save();go(300);
+  autoPick();refreshListings();refreshLoanListings();save();go(300);
 }
 function rejectJob(){
   state.conf=clamp(state.conf+3,0,100);state.offer=null;
@@ -770,7 +799,7 @@ function windowInfo(){
 function windowOpen(){return windowInfo().open;}
 
 // ---------- transfer market ----------
-let marketClub=null,scoutDiv=null;
+let marketClub=null,scoutDiv=null,classPage=0;
 function allListedPlayers(){
   const out=[];
   divTeams(1).concat(divTeams(2)).forEach(t=>{
@@ -789,13 +818,13 @@ function clubAppeal(t){
 }
 function willingness(p,fromClub,toClub){
   const diff=clubAppeal(fromClub)-clubAppeal(toClub);
-  let w=0.85-diff*0.035;
-  if(p.age>=31)w+=0.15;
-  if(p.age<=21)w-=0.05;
-  return clamp(w,0.03,0.97);
+  let w=0.5-diff*0.04;
+  if(p.age>=31)w+=0.12;
+  if(p.age<=21)w-=0.08;
+  return clamp(w,0.02,0.9);
 }
 function effectiveWillingness(p,fromClub){
-  return clamp(willingness(p,fromClub,state.teamIdx)+(p.listed?0.2:0),0.03,0.98);
+  return clamp(willingness(p,fromClub,state.teamIdx)+(p.listed?0.12:0),0.02,0.93);
 }
 function viewClub(t){marketClub=t;pend=null;msg='';render();}
 function backToClubs(){marketClub=null;pend=null;msg='';render();}
@@ -824,6 +853,48 @@ function refreshListings(){
     });
   });
 }
+function refreshLoanListings(){
+  const pool=divTeams(1).concat(divTeams(2));
+  pool.forEach(t=>{
+    if(t===state.teamIdx)return;
+    const sq=state.squads[t];
+    const byRat=[...sq].sort((a,b)=>b.rat-a.rat);
+    sq.forEach(p=>{
+      if(p.onLoanFrom!=null)return; // already out on loan, can't be loaned again
+      if(p.loanListed){if(Math.random()<0.2)p.loanListed=false;return;}
+      const rank=byRat.indexOf(p);
+      if(p.age<=23&&rank>=3&&Math.random()<0.04)p.loanListed=true;
+    });
+  });
+}
+function loanOut(i){
+  if(!windowOpen()){msg='TRANSFER WINDOW CLOSED';render();return;}
+  const sq=mySquad(),p=sq[i];if(!p)return;
+  if(state.lineup.includes(i)){msg='CANNOT LOAN OUT A FIRST-TEAM REGULAR';render();return;}
+  if(sq.length<=11){msg='SQUAD TOO THIN TO LOAN ANYONE OUT';render();return;}
+  const fee=Math.max(1,Math.round(val(p)*0.15));
+  state.budget+=fee;
+  state.loans.out.push(p);
+  const k=state.lineup.indexOf(i);if(k>=0)state.lineup.splice(k,1);
+  state.lineup=state.lineup.map(j=>j>i?j-1:j);
+  sq.splice(i,1);
+  msg=p.name+' LOANED OUT FOR THE SEASON (+£'+fee+'M)';
+  addNews(p.name+' JOINS ON LOAN FOR THE REST OF THE SEASON');
+  save();render();
+}
+function loanIn(t,idx){
+  if(!windowOpen()){msg='TRANSFER WINDOW CLOSED';render();return;}
+  const sq=state.squads[t],p=sq[idx];if(!p||!p.loanListed)return;
+  if(mySquad().length>=20){msg='SQUAD FULL (MAX 20)';render();return;}
+  const fee=Math.max(1,Math.round(val(p)*0.2));
+  if(state.budget<fee){msg='NOT ENOUGH FUNDS';render();return;}
+  state.budget-=fee;
+  sq.splice(idx,1);
+  mySquad().push({...p,onLoanFrom:t,loanListed:false});
+  msg=p.name+' JOINS ON LOAN FOR £'+fee+'M';
+  addNews(p.name+' JOINS '+TEAMS[state.teamIdx].n+' ON LOAN');
+  save();render();
+}
 function sellPrice(p){
   const fair=Math.max(1,Math.round(val(p)));
   if(p.boughtFor!=null&&state.sp-p.boughtSp<8)return Math.max(1,Math.min(fair,p.boughtFor));
@@ -850,7 +921,7 @@ function attemptSign(t,name,key){
   state.budget-=cost;
   sq.splice(sq.indexOf(p),1);
   mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:p.goals,inj:0,sus:0,age:p.age,
-    listed:false,boughtFor:cost,boughtSp:state.sp,contract:3+rnd(3)});
+    listed:false,loanListed:false,yellows:0,boughtFor:cost,boughtSp:state.sp,contract:3+rnd(3)});
   pend=null;msg=p.name+' SIGNED FOR £'+cost+'M!';
   addNews(p.name+' SIGNS FOR '+TEAMS[state.teamIdx].n+' (£'+cost+'M)');
   save();render();
@@ -874,8 +945,15 @@ function sell(i){
   const k=state.lineup.indexOf(i);if(k>=0)state.lineup.splice(k,1);
   state.lineup=state.lineup.map(j=>j>i?j-1:j);
   sq.splice(i,1);
+  // the player joins a new club rather than vanishing — and can't be immediately re-signed
+  const pool=divTeams(1).concat(divTeams(2)).filter(t=>t!==state.teamIdx);
+  const dest=pick(pool);
+  const moved={...p,listed:false,loanListed:false,onLoanFrom:undefined,boughtFor:undefined,boughtSp:undefined};
+  state.squads[dest].push(moved);
+  state.rejected=state.rejected||{};
+  state.rejected[dest+':'+p.name]=state.sp+10;
   pend=null;msg=p.name+' SOLD FOR £'+fee+'M';
-  addNews(TEAMS[state.teamIdx].c+' CASH IN: '+p.name+' SOLD (£'+fee+'M)');
+  addNews(TEAMS[state.teamIdx].c+' CASH IN: '+p.name+' SOLD TO '+TEAMS[dest].n+' (£'+fee+'M)');
   save();render();
 }
 
@@ -1120,6 +1198,20 @@ function simMinute(){
       if(oppIsHome){m.hAtt*=0.82;m.hDef*=0.90;}else{m.aAtt*=0.82;m.aDef*=0.90;}
       live.log.push({t:padl(live.min,2)+"' "+TEAMS[oppIsHome?m.h:m.a].c+" DOWN TO 10 MEN!",c:'g'});
     }
+    // yellow cards accumulate toward a 5-booking suspension, same as real football
+    if(!live.userYellow&&state.lineup.length&&Math.random()<0.02){
+      live.userYellow=true;
+      const sq=mySquad(),k=rnd(state.lineup.length),li=state.lineup[k],p=sq[li];
+      p.yellows=(p.yellows||0)+1;
+      live.log.push({t:padl(live.min,2)+"' "+p.name+" BOOKED ("+p.yellows+"/5 THIS SEASON)",c:'y'});
+      if(p.yellows>=5){
+        p.sus=1;p.yellows=0;
+        state.lineup.splice(k,1);
+        live.log.push({t:"   SUSPENDED - 5TH BOOKING OF THE SEASON",c:'rd'});
+        addNews(p.name+' BANNED AFTER 5TH BOOKING OF THE SEASON');
+        refreshUserStr();
+      }
+    }
     if(Math.random()<0.05){
       const m=live.user,t=Math.random()<0.5?m.h:m.a,p=scorer(t);
       live.log.push({t:padl(live.min,2)+"' "+pick(FLAVOR).replace('{P}',p.name).replace('{T}',TEAMS[t].c),c:'w'});
@@ -1140,12 +1232,20 @@ function finishMatch(){
   const res=!u?null:
     u.h===state.teamIdx?(u.hs>u.as?'WIN':u.hs<u.as?'LOSS':'DRAW')
                        :(u.as>u.hs?'WIN':u.as<u.hs?'LOSS':'DRAW');
+  if(u){
+    state.career.p++;
+    if(res==='WIN')state.career.w++;else if(res==='LOSS')state.career.l++;else state.career.d++;
+    state.career.gf+=u.h===state.teamIdx?u.hs:u.as;
+    state.career.ga+=u.h===state.teamIdx?u.as:u.hs;
+  }
   if(e.t==='L'){
     const prize=res==='WIN'?3:res==='DRAW'?1:0;
+    const gateReceipts=u.h===state.teamIdx?state.facilities.stadium*2:0;
     const wageCost=Math.round(totalWageBill()/(DIVSIZE[myDiv()]*2-2));
-    state.budget+=prize-wageCost;
+    state.budget+=prize-wageCost+gateReceipts;
     live.log.push({t:"FULL TIME — "+res+(prize?" (+£"+prize+"M)":""),
                    c:res==='WIN'?'g':res==='LOSS'?'rd':'y'});
+    if(gateReceipts>0)live.log.push({t:"GATE RECEIPTS: +£"+gateReceipts+"M",c:'g'});
     if(wageCost>0)live.log.push({t:"WAGES PAID: -£"+wageCost+"M",c:'m'});
     state.res[myDiv()].push(live.ms.map(m=>({h:m.h,a:m.a,hs:m.hs,as:m.as})));
     syncOtherDivision();
@@ -1275,7 +1375,9 @@ function finishMatch(){
   }
   aiTransfer();
   rivalManagerNews();
+  internationalNews();
   refreshListings();
+  refreshLoanListings();
   if(state.conf<=0&&!state.sacked){state.sacked=true;addNews(TEAMS[state.teamIdx].n+' SACK MANAGER');}
   else if(state.conf<=20)addNews('BOARD LOSING PATIENCE AT '+TEAMS[state.teamIdx].c);
   if(u){
@@ -1307,6 +1409,7 @@ function go(p){
   if(p!==315){marketClub=null;scoutDiv=null;}
   if(p===303&&state)viewMD=Math.min(state.res[myDiv()].length,state.fx[myDiv()].length-1);
   if(p===304)tableDiv=null;
+  if(p===317)classPage=0;
   render();
 }
 function render(){renderHdr();renderMain();renderFtx();}
@@ -1346,9 +1449,12 @@ function renderMain(){
     case 315:h=pageScout();break;
     case 316:h=pageSaveGame();break;
     case 317:h=pageClassifieds();break;
+    case 318:h=pageLoans();break;
+    case 319:h=pageFacilities();break;
+    case 320:h=pageManagerProfile();break;
     default:h=BLANK+banner('PAGE NOT IN USE','bw')+BLANK
       +L(sp('  THIS PAGE IS CURRENTLY NOT IN USE','w'))
-      +L(sp('  PLEASE SELECT PAGES 300-317','c'))+BLANK
+      +L(sp('  PLEASE SELECT PAGES 300-320','c'))+BLANK
       +L(sp('  ','w')+sp('<span class="lnk by" onclick="go(300)"> INDEX 300 </span>','w'));
   }
   $('main').innerHTML=h;
@@ -1395,9 +1501,11 @@ function pageMenu(){
        +sp('   BOARD: ','w')+sp(mood,moodCl));
     if(state.euro)h+=L(sp(' '+state.euro.comp+': ','w')
       +sp(state.euro.stage==='LEAGUE'?state.euro.pts+' PTS FROM '+state.euro.played.length+' GAMES':state.euro.stage,'m'));
+    h+=BLANK+L(sp(' ','w')+`<span class="lnk byy" onclick="go(305)"> ► PLAY YOUR NEXT MATCH ► </span>`);
   }else{
     h+=L(sp(' SEASON '+state.season+' COMPLETE!','y'));
     h+=L(sp(' FINAL POSITION: '+myPos(),'c'));
+    h+=BLANK+L(sp(' ','w')+`<span class="lnk byy" onclick="go(305)"> ► START NEXT SEASON ► </span>`);
   }
   h+=BLANK;
   const item=(txt,p)=>L(`<span class="lnk" onclick="go(${p})">`
@@ -1407,11 +1515,14 @@ function pageMenu(){
   h+=item('TACTICS',302);
   h+=item('FIXTURES + RESULTS',303);
   h+=item('LEAGUE TABLE',304);
-  h+=item('MATCHDAY LIVE',305);
+  h+=item('PLAY MATCH (LIVE)',305);
   h+=item('TOP SCORERS',306);
   h+=item('TRANSFERS: BUY',307);
   h+=item('TRANSFERS: SELL',308);
   h+=item('SCOUT CLUBS',315);
+  h+=item('LOAN SYSTEM',318);
+  h+=item('CLUB FACILITIES',319);
+  h+=item('MANAGER PROFILE',320);
   h+=item('TELEBOSS CUP',310);
   h+=item('EUROPE',314);
   h+=item('NEWS',311);
@@ -1462,6 +1573,11 @@ function pageSquad(){
   }else{
     h+=BLANK+L(sp(' WAGE BILL: £'+totalWageBill()+'M/SEASON','m'));
   }
+  const onLoan=sq.filter(p=>p.onLoanFrom!=null);
+  if(onLoan.length){
+    h+=BLANK+L(sp(' ON LOAN: ','m')+sp(onLoan.map(p=>p.name).join(', '),'c'));
+  }
+  h+=L(sp(' MANAGE LOAN DEALS: PAGE 318','m'));
   return h;
 }
 
@@ -1911,6 +2027,88 @@ function pageNewGame(){
     +BLANK+L(sp(' TO SAVE OR BACK UP YOUR CAREER: PAGE 316','m'));
 }
 
+function pageLoans(){
+  if(!windowOpen())return pageWindowClosed('LOAN SYSTEM');
+  let h=banner('LOAN SYSTEM','by')+BLANK;
+  h+=L(sp(msg?' '+msg:' MANAGE LOAN DEALS IN AND OUT',msg?'y':'c'))+BLANK;
+  const sq=mySquad();
+  const benched=sq.map((p,i)=>({p,i})).filter(x=>!state.lineup.includes(x.i)&&x.p.onLoanFrom==null);
+  h+=L(sp(' SEND ON LOAN (SQUAD PLAYERS):','g'));
+  if(!benched.length)h+=L(sp('  NO ELIGIBLE PLAYERS','w'));
+  benched.forEach(({p,i})=>{
+    const fee=Math.max(1,Math.round(val(p)*0.15));
+    h+=L(`<span class="lnk" onclick="loanOut(${i})">`
+      +sp('  '+padName(p.name,13),'w')+sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+      +sp(padl('+£'+fee+'M',8),'g')+'</span>');
+  });
+  if(state.loans.out.length){
+    h+=BLANK+L(sp(' CURRENTLY OUT ON LOAN:','m'));
+    state.loans.out.forEach(p=>h+=L(sp('  '+p.name+' - RETURNS NEXT SEASON','w')));
+  }
+  h+=BLANK+L(sp(' LOAN MARKET - YOUNG PLAYERS AVAILABLE:','g'));
+  const market=[];
+  divTeams(1).concat(divTeams(2)).forEach(t=>{
+    if(t===state.teamIdx)return;
+    state.squads[t].forEach((p,idx)=>{if(p.loanListed)market.push({t,idx,p});});
+  });
+  market.sort((a,b)=>b.p.rat-a.p.rat);
+  if(!market.length)h+=L(sp('  NONE AVAILABLE RIGHT NOW','w'));
+  market.forEach(({t,idx,p})=>{
+    const fee=Math.max(1,Math.round(val(p)*0.2));
+    h+=L(`<span class="lnk" onclick="loanIn(${t},${idx})">`
+      +sp('  '+padName(p.name,11),'w')+sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+      +sp(padl(p.age,4),'c')+sp(' '+pad(TEAMS[t].c,4),'c')
+      +sp(padl(fee,5)+'M','y')+'</span>');
+  });
+  return h;
+}
+
+function facilityCost(level){return level*25;}
+function upgradeFacility(name){
+  const lvl=state.facilities[name];
+  if(lvl>=5){msg='ALREADY AT MAXIMUM LEVEL';render();return;}
+  const cost=facilityCost(lvl);
+  if(state.budget<cost){msg='NOT ENOUGH FUNDS';render();return;}
+  state.budget-=cost;
+  state.facilities[name]=lvl+1;
+  msg=name.toUpperCase()+' UPGRADED TO LEVEL '+(lvl+1);
+  addNews(TEAMS[state.teamIdx].n+' UPGRADE THEIR '+name.toUpperCase()+' TO LEVEL '+(lvl+1));
+  save();render();
+}
+function pageFacilities(){
+  let h=banner('CLUB FACILITIES','by')+BLANK;
+  h+=L(sp(msg?' '+msg:' INVEST IN YOUR CLUB’S FUTURE',msg?'y':'c')
+    +sp('  £'+state.budget+'M','g'))+BLANK;
+  const rows=[['stadium','STADIUM','+£/HOME MATCH GATE RECEIPTS'],
+    ['training','TRAINING GROUND','FASTER PLAYER DEVELOPMENT'],
+    ['youth','YOUTH ACADEMY','BETTER YOUTH INTAKE QUALITY']];
+  rows.forEach(([key,label,desc])=>{
+    const lvl=state.facilities[key];
+    h+=L(sp(' '+pad(label,17),'w')+sp('LV '+lvl+'/5',lvl>=5?'g':'y'));
+    h+=L(sp('  '+desc,'c'));
+    if(lvl<5)h+=L(`<span class="lnk bgr" onclick="upgradeFacility('${key}')"> UPGRADE £${facilityCost(lvl)}M </span>`);
+    else h+=L(sp('  MAXED OUT','g'));
+    h+=BLANK;
+  });
+  return h;
+}
+function pageManagerProfile(){
+  const c=state.career;
+  const tr=state.honours.filter(x=>x.pos===1).length+state.honours.filter(x=>x.cup==='WON').length
+    +state.honours.filter(x=>x.euro&&x.euro.includes('CHAMPION')).length;
+  const winPct=c.p?Math.round(c.w/c.p*100):0;
+  let h=banner('MANAGER PROFILE','by')+BLANK;
+  h+=L(sp(' CURRENT CLUB: ','w')+sp(TEAMS[state.teamIdx].n,'y'));
+  h+=L(sp(' SEASONS IN CHARGE: ','w')+sp(String(state.season),'c'));
+  h+=L(sp(' REPUTATION: ','w')+sp(state.rep+'/99','c'));
+  h+=L(sp(' TROPHIES WON: ','w')+sp(String(tr),tr?'y':'w'))+BLANK;
+  h+=L(sp(' CAREER RECORD (ALL COMPETITIONS):','g'));
+  h+=L(sp(' PLAYED: ','w')+sp(String(c.p),'w')
+    +sp('  W','g')+sp(String(c.w),'g')+sp(' D','y')+sp(String(c.d),'y')+sp(' L','rd')+sp(String(c.l),'rd'));
+  h+=L(sp(' WIN RATE: ','w')+sp(winPct+'%',winPct>=50?'g':winPct>=35?'y':'rd'));
+  h+=L(sp(' GOALS: ','w')+sp(c.gf+' FOR, '+c.ga+' AGAINST','c'));
+  return h;
+}
 function pageSaveGame(){
   let h=banner('SAVE GAME','by')+BLANK;
   h+=L(sp(msg?' '+msg:' YOUR CAREER AUTO-SAVES AFTER EVERY ACTION',msg?'y':'c'))+BLANK;
@@ -1924,9 +2122,17 @@ function pageSaveGame(){
 }
 
 function pageClassifieds(){
-  let h=banner('CLASSIFIEDS','m')+BLANK;
-  h+=L(sp(' ALL '+ADS.length+' SMALL ADS ON THE BOOKS TODAY:','c'))+BLANK;
-  ADS.forEach((ad,i)=>{h+=L(sp(' '+ad,i%2?'c':'w'));});
+  const perPage=10,total=Math.ceil(ADS.length/perPage);
+  classPage=clamp(classPage,0,total-1);
+  let h=banner('CLASSIFIEDS','m');
+  h+=L(`<span class="lnk y" onclick="classPage--;render()">${pad(' << PREV',10)}</span>`
+    +sp(pad('PAGE '+(classPage+1)+'/'+total,20),'w')
+    +`<span class="lnk y" onclick="classPage++;render()">${padl('NEXT >> ',10)}</span>`);
+  h+=BLANK;
+  ADS.slice(classPage*perPage,(classPage+1)*perPage).forEach((ad,i)=>{
+    h+=L(sp(' '+ad,i%2?'c':'w'));
+  });
+  h+=BLANK+L(sp(' '+ADS.length+' ADS IN TOTAL','m'));
   return h;
 }
 
