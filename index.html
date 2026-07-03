@@ -1,0 +1,1961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TELEBOSS — Teletext Football Manager 25/26</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#1a1a1a;height:100%}
+body{display:flex;justify-content:center;align-items:center;overflow:auto;
+  font-family:'VT323','Courier New',monospace}
+#crt{background:#000;padding:.8em 1.2em 1em;border-radius:14px;position:relative;
+  box-shadow:0 0 70px rgba(0,0,0,.9), inset 0 0 40px rgba(0,0,0,.6)}
+#crt::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:14px;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
+#screen{width:41ch;font-size:min(2.4vh,2.6vw);line-height:1.2;color:#fff}
+.ln{white-space:pre;min-height:1.2em}
+.dhw{height:2.4em;overflow:hidden}
+.dh{display:inline-block;transform:scaleY(2);transform-origin:top left;white-space:pre}
+.w{color:#fff}.y{color:#ff0}.c{color:#0ff}.g{color:#0f0}.m{color:#f0f}
+.rd{color:#f33}.bl{color:#66f}
+.by{background:#0000c8;color:#ff0}.bw{background:#0000c8;color:#fff}
+.byy{background:#ff0;color:#000}.bgr{background:#0f0;color:#000}
+.bcy{background:#0ff;color:#000}.brd{background:#f00;color:#fff}
+span{text-shadow:0 0 5px currentColor}
+.by,.bw,.byy,.bgr,.bcy,.brd{text-shadow:none}
+.lnk{cursor:pointer}
+.lnk:hover{background:#333}
+.btn{background:#ff0;color:#000;cursor:pointer;text-shadow:none}
+.btn:hover{background:#fff}
+#ftx{margin-top:.6em}
+#matchlog{scrollbar-color:#ff0 #000;scrollbar-width:thin}
+#matchlog::-webkit-scrollbar{width:10px}
+#matchlog::-webkit-scrollbar-track{background:#000}
+#matchlog::-webkit-scrollbar-thumb{background:#ff0;border-radius:0}
+</style>
+</head>
+<body>
+<div id="crt"><div id="screen">
+  <div class="ln" id="hdr"></div>
+  <div id="main"></div>
+  <div class="ln" id="ftx"></div>
+</div></div>
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importSave(this)">
+<script>
+'use strict';
+// ---------- utilities ----------
+const $=id=>document.getElementById(id);
+const rnd=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rnd(a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pad=(s,n)=>String(s).slice(0,n).padEnd(n);
+const padl=(s,n)=>String(s).slice(0,n).padStart(n);
+const padName=(s,n)=>String(s).slice(0,Math.max(1,n-1)).padEnd(n);
+const sp=(t,cl)=>`<span class="${cl}">${t}</span>`;
+const L=h=>`<div class="ln">${h}</div>`;
+const DH=h=>`<div class="dhw"><span class="dh">${h}</span></div>`;
+const BLANK=L('&nbsp;');
+
+// ---------- 2025/26 PREMIER LEAGUE DATA ----------
+// players: [name, pos, rating, age] — 2 GK, 5 DF, 5 MF, 4 FW each (25/26 season)
+const TEAMS=[
+{n:"ARSENAL",c:"ARS",str:88,p:[["RAYA","GK",87,29],["KEPA","GK",78,31],
+ ["SALIBA","DF",89,24],["GABRIEL","DF",88,27],["TIMBER","DF",85,24],["CALAFIORI","DF",83,23],["WHITE","DF",82,28],
+ ["RICE","MF",89,26],["ODEGAARD","MF",87,26],["ZUBIMENDI","MF",86,26],["MERINO","MF",81,29],["NORGAARD","MF",78,31],
+ ["SAKA","FW",90,24],["GYOKERES","FW",86,27],["EZE","FW",84,27],["MARTINELLI","FW",82,24]]},
+{n:"ASTON VILLA",c:"AVL",str:80,p:[["MARTINEZ","GK",85,33],["BIZOT","GK",74,34],
+ ["KONSA","DF",82,28],["PAU TORRES","DF",82,28],["CASH","DF",78,28],["DIGNE","DF",77,32],["MINGS","DF",78,32],
+ ["TIELEMANS","MF",83,28],["KAMARA","MF",81,25],["ONANA","MF",80,24],["MCGINN","MF",80,31],["ROGERS","MF",84,22],
+ ["WATKINS","FW",84,29],["MALEN","FW",77,26],["GUESSAND","FW",76,24],["BUENDIA","FW",75,28]]},
+{n:"BOURNEMOUTH",c:"BOU",str:77,p:[["PETROVIC","GK",80,25],["DENNIS","GK",68,25],
+ ["SENESI","DF",80,28],["DIAKITE","DF",78,24],["TRUFFERT","DF",76,23],["ARAUJO","DF",74,24],["SMITH","DF",72,34],
+ ["ADAMS","MF",78,26],["COOK","MF",77,28],["SCOTT","MF",76,22],["CHRISTIE","MF",75,30],["BROOKS","MF",74,28],
+ ["SEMENYO","FW",85,25],["KLUIVERT","FW",80,26],["EVANILSON","FW",79,25],["TAVERNIER","FW",74,26]]},
+{n:"BRENTFORD",c:"BRE",str:76,p:[["KELLEHER","GK",80,26],["VALDIMARSSON","GK",68,24],
+ ["COLLINS","DF",81,24],["PINNOCK","DF",77,32],["AJER","DF",75,27],["VAN DEN BERG","DF",75,23],["KAYODE","DF",73,21],
+ ["DAMSGAARD","MF",78,25],["JANELT","MF",75,27],["HENDERSON","MF",74,35],["YARMOLIUK","MF",74,21],["MILAMBO","MF",72,20],
+ ["THIAGO","FW",80,24],["SCHADE","FW",79,23],["OUATTARA","FW",76,23],["CARVALHO","FW",73,23]]},
+{n:"BRIGHTON",c:"BHA",str:78,p:[["VERBRUGGEN","GK",81,23],["STEELE","GK",71,35],
+ ["VAN HECKE","DF",80,25],["DUNK","DF",76,33],["DE CUYPER","DF",76,24],["COPPOLA","DF",74,21],["VELTMAN","DF",73,33],
+ ["BALEBA","MF",82,21],["HINSHELWOOD","MF",76,20],["AYARI","MF",76,23],["GRUDA","MF",73,21],["MILNER","MF",68,39],
+ ["MITOMA","FW",82,28],["MINTEH","FW",79,21],["WELBECK","FW",78,34],["RUTTER","FW",78,23]]},
+{n:"BURNLEY",c:"BUR",str:66,p:[["DUBRAVKA","GK",75,36],["WEISS","GK",65,21],
+ ["WALKER","DF",75,35],["ESTEVE","DF",72,24],["HARTMAN","DF",71,23],["TUANZEBE","DF",70,27],["EKDAL","DF",66,26],
+ ["FLORENTINO","MF",71,25],["CULLEN","MF",70,29],["UGOCHUKWU","MF",70,21],["LAURENT","MF",67,30],["MEJBRI","MF",67,22],
+ ["ANTHONY","FW",71,25],["FOSTER","FW",70,25],["FLEMMING","FW",69,28],["BRUUN LARSEN","FW",69,26]]},
+{n:"CHELSEA",c:"CHE",str:84,p:[["SANCHEZ","GK",80,27],["JORGENSEN","GK",73,23],
+ ["JAMES","DF",84,25],["CUCURELLA","DF",84,27],["CHALOBAH","DF",79,26],["GUSTO","DF",78,22],["HATO","DF",77,19],
+ ["CAICEDO","MF",88,23],["ENZO","MF",85,24],["NETO","MF",80,25],["LAVIA","MF",78,21],["A.SANTOS","MF",76,21],
+ ["PALMER","FW",90,23],["JOAO PEDRO","FW",83,23],["ESTEVAO","FW",82,18],["DELAP","FW",78,22]]},
+{n:"CRYSTAL PALACE",c:"CRY",str:78,p:[["HENDERSON","GK",80,28],["MATTHEWS","GK",68,20],
+ ["GUEHI","DF",85,25],["LACROIX","DF",81,25],["MUNOZ","DF",81,29],["MITCHELL","DF",79,25],["RICHARDS","DF",78,26],
+ ["WHARTON","MF",82,21],["HUGHES","MF",77,30],["KAMADA","MF",76,29],["DOUCOURE","MF",75,25],["SOSA","MF",74,27],
+ ["MATETA","FW",82,28],["I.SARR","FW",80,27],["PINO","FW",77,22],["NKETIAH","FW",74,26]]},
+{n:"EVERTON",c:"EVE",str:74,p:[["PICKFORD","GK",84,31],["TRAVERS","GK",70,26],
+ ["BRANTHWAITE","DF",82,23],["TARKOWSKI","DF",79,32],["MYKOLENKO","DF",75,26],["O'BRIEN","DF",75,24],["KEANE","DF",71,32],
+ ["GREALISH","MF",80,30],["GUEYE","MF",77,35],["DEWSBURY-HALL","MF",76,26],["GARNER","MF",75,24],["IROEGBUNAM","MF",70,22],
+ ["NDIAYE","FW",80,25],["MCNEIL","FW",76,25],["BETO","FW",74,27],["BARRY","FW",72,22]]},
+{n:"FULHAM",c:"FUL",str:75,p:[["LENO","GK",80,33],["LECOMTE","GK",71,34],
+ ["ROBINSON","DF",80,27],["ANDERSEN","DF",78,29],["BASSEY","DF",77,25],["TETE","DF",74,29],["CASTAGNE","DF",74,29],
+ ["PEREIRA","MF",77,29],["IWOBI","MF",77,29],["BERGE","MF",76,27],["LUKIC","MF",74,29],["CAIRNEY","MF",71,34],
+ ["JIMENEZ","FW",76,34],["MUNIZ","FW",75,24],["H.WILSON","FW",74,28],["KEVIN","FW",74,22]]},
+{n:"LEEDS UNITED",c:"LEE",str:70,p:[["PERRI","GK",74,27],["DARLOW","GK",68,34],
+ ["BIJOL","DF",74,26],["STRUIJK","DF",73,25],["RODON","DF",72,27],["GUDMUNDSSON","DF",71,26],["BOGLE","DF",70,24],
+ ["TANAKA","MF",74,26],["STACH","MF",74,26],["AMPADU","MF",73,24],["LONGSTAFF","MF",72,27],["AARONSON","MF",72,24],
+ ["CALVERT-LEWIN","FW",73,28],["OKAFOR","FW",72,25],["NMECHA","FW",71,26],["PIROE","FW",70,25]]},
+{n:"LIVERPOOL",c:"LIV",str:85,p:[["ALISSON","GK",88,32],["MAMARDASHVILI","GK",79,24],
+ ["VAN DIJK","DF",89,34],["KONATE","DF",84,26],["KERKEZ","DF",80,21],["FRIMPONG","DF",80,24],["ROBERTSON","DF",79,31],
+ ["MAC ALLISTER","MF",87,26],["WIRTZ","MF",87,22],["GRAVENBERCH","MF",86,23],["SZOBOSZLAI","MF",84,24],["JONES","MF",77,24],
+ ["SALAH","FW",91,33],["ISAK","FW",88,25],["EKITIKE","FW",83,23],["GAKPO","FW",82,26]]},
+{n:"MAN CITY",c:"MCI",str:86,p:[["DONNARUMMA","GK",88,26],["TRAFFORD","GK",76,22],
+ ["DIAS","DF",86,28],["GVARDIOL","DF",85,23],["STONES","DF",82,31],["AIT-NOURI","DF",80,24],["KHUSANOV","DF",77,21],
+ ["RODRI","MF",90,29],["B.SILVA","MF",85,30],["REIJNDERS","MF",83,26],["CHERKI","MF",80,21],["NICO","MF",78,23],
+ ["HAALAND","FW",93,25],["FODEN","FW",85,25],["DOKU","FW",83,23],["MARMOUSH","FW",82,26]]},
+{n:"MAN UTD",c:"MUN",str:80,p:[["LAMMENS","GK",78,23],["BAYINDIR","GK",74,27],
+ ["DE LIGT","DF",82,25],["YORO","DF",80,19],["DALOT","DF",78,26],["SHAW","DF",77,30],["DORGU","DF",74,20],
+ ["FERNANDES","MF",86,30],["CASEMIRO","MF",78,33],["MAINOO","MF",78,20],["UGARTE","MF",76,24],["MOUNT","MF",75,26],
+ ["MBEUMO","FW",84,25],["CUNHA","FW",82,26],["SESKO","FW",80,22],["AMAD","FW",80,23]]},
+{n:"NEWCASTLE",c:"NEW",str:81,p:[["POPE","GK",81,33],["RAMSDALE","GK",76,27],
+ ["BOTMAN","DF",81,25],["HALL","DF",79,21],["LIVRAMENTO","DF",79,22],["BURN","DF",78,33],["THIAW","DF",78,23],
+ ["BRUNO G.","MF",86,27],["TONALI","MF",86,25],["JOELINTON","MF",80,28],["RAMSEY","MF",75,24],["WILLOCK","MF",74,25],
+ ["GORDON","FW",83,24],["WOLTEMADE","FW",80,23],["WISSA","FW",79,28],["ELANGA","FW",77,23]]},
+{n:"NOTTM FOREST",c:"NFO",str:74,p:[["SELS","GK",79,33],["JOHN VICTOR","GK",71,29],
+ ["MILENKOVIC","DF",81,27],["MURILLO","DF",81,23],["AINA","DF",78,28],["N.WILLIAMS","DF",75,24],["SAVONA","DF",73,22],
+ ["GIBBS-WHITE","MF",82,25],["ANDERSON","MF",79,22],["D.LUIZ","MF",75,27],["MCATEE","MF",74,22],["YATES","MF",72,27],
+ ["WOOD","FW",78,33],["NDOYE","FW",76,24],["IGOR JESUS","FW",75,24],["HUTCHINSON","FW",73,26]]},
+{n:"SUNDERLAND",c:"SUN",str:74,p:[["ROEFS","GK",78,22],["PATTERSON","GK",70,24],
+ ["MUKIELE","DF",77,27],["BALLARD","DF",75,25],["ALDERETE","DF",74,28],["HUME","DF",74,25],["MASUAKU","DF",72,31],
+ ["XHAKA","MF",81,32],["DIARRA","MF",76,21],["LE FEE","MF",75,25],["RIGG","MF",74,18],["SADIKI","MF",72,20],
+ ["ADINGRA","FW",75,23],["ISIDOR","FW",74,24],["MAYENDA","FW",73,20],["BROBBEY","FW",73,23]]},
+{n:"TOTTENHAM",c:"TOT",str:79,p:[["VICARIO","GK",82,28],["KINSKY","GK",74,22],
+ ["ROMERO","DF",84,27],["VAN DE VEN","DF",84,24],["PORRO","DF",81,25],["UDOGIE","DF",78,22],["DANSO","DF",76,26],
+ ["SIMONS","MF",81,22],["PALHINHA","MF",79,30],["BENTANCUR","MF",78,28],["P.M.SARR","MF",78,22],["BERGVALL","MF",78,19],
+ ["KUDUS","FW",80,25],["KOLO MUANI","FW",78,26],["JOHNSON","FW",78,24],["RICHARLISON","FW",76,28]]},
+{n:"WEST HAM",c:"WHU",str:71,p:[["AREOLA","GK",78,32],["HERMANSEN","GK",74,25],
+ ["TODIBO","DF",76,25],["WAN-BISSAKA","DF",76,27],["KILMAN","DF",75,28],["MAVROPANOS","DF",73,27],["DIOUF","DF",73,20],
+ ["PAQUETA","MF",80,28],["SOUCEK","MF",75,30],["WARD-PROWSE","MF",75,30],["M.FERNANDES","MF",74,21],["MAGASSA","MF",70,21],
+ ["BOWEN","FW",82,28],["SUMMERVILLE","FW",75,23],["FULLKRUG","FW",74,32],["C.WILSON","FW",72,33]]},
+{n:"WOLVES",c:"WOL",str:64,p:[["SA","GK",76,32],["JOHNSTONE","GK",71,32],
+ ["AGBADOU","DF",73,26],["KREJCI","DF",72,26],["TOTI","DF",70,26],["S.BUENO","DF",69,26],["DOHERTY","DF",68,33],
+ ["J.GOMES","MF",77,24],["ANDRE","MF",75,24],["ARIAS","MF",73,27],["BELLEGARDE","MF",72,27],["MUNETSI","MF",70,29],
+ ["STRAND LARSEN","FW",77,25],["HWANG","FW",70,29],["AROKODARE","FW",70,24],["R.GOMES","FW",69,22]]},
+];
+const DIV1_SIZE=TEAMS.length; // Premier League clubs, real rosters above
+
+// ---------- 2025/26 EFL CHAMPIONSHIP (24 clubs) ----------
+// squads generated procedurally — real lower-league rosters aren't modelled in depth
+const CHAMPIONSHIP=[
+{n:"LEICESTER CITY",c:"LEI",str:68,p:[["STOLARCZYK","GK",66,25],["BEGOVIC","GK",63,39],
+ ["FAES","DF",72,28],["SOUTTAR","DF",70,27],["VESTERGAARD","DF",68,33],["KRISTIANSEN","DF",67,23],["COULIBALY","DF",65,27],
+ ["CHOUDHURY","MF",68,28],["SKIPP","MF",70,25],["WINKS","MF",69,30],["DE CORDOVA-REID","MF",71,33],["GOLDING","MF",62,20],
+ ["MAVIDIDI","FW",72,28],["FATAWU","FW",70,22],["MONGA","FW",68,16],["S.THOMAS","FW",60,22]]},
+{n:"SOUTHAMPTON",c:"SOU",str:66,p:[["RAMSDALE","GK",74,28],["BAZUNU","GK",65,24],
+ ["HARWOOD-BELLIS","DF",70,24],["STEPHENS","DF",68,32],["WOOD","DF",66,24],["SUGAWARA","DF",65,26],["MANNING","DF",64,30],
+ ["CHARLES","MF",68,22],["AZAZ","MF",69,25],["DOWNES","MF",67,27],["SCIENZA","MF",65,27],["FELLOWS","MF",63,22],
+ ["ARCHER","FW",70,24],["BRERETON DIAZ","FW",66,27],["DOWNS","FW",64,21],["LARIN","FW",62,31]]},
+{n:"IPSWICH TOWN",c:"IPS",str:62,p:[["WALTON","GK",66,30],["PALMER","GK",64,29],
+ ["O'SHEA","DF",67,27],["GREAVES","DF",63,25],["KIPRE","DF",62,29],["L.DAVIS","DF",65,26],["FURLONG","DF",60,30],
+ ["MATUSIWA","MF",64,28],["NUNEZ","MF",63,26],["J.TAYLOR","MF",60,28],["MCATEER","MF",62,24],["SZMODICS","MF",68,30],
+ ["PHILOGENE","FW",68,24],["J.CLARKE","FW",63,25],["HIRST","FW",65,27],["AKPOM","FW",64,30]]},
+{n:"WEST BROM",c:"WBA",str:61,p:[["O'LEARY","GK",63,29],["INGRAM","GK",58,32],
+ ["MEPHAM","DF",64,28],["PHILLIPS","DF",62,29],["BIELIK","DF",63,28],["CAMPBELL","DF",58,25],["STYLES","DF",60,26],
+ ["DIAKITE","MF",60,25],["PRICE","MF",58,22],["MOLUMBY","MF",62,26],["MOWATT","MF",61,31],["JOHNSTON","MF",63,27],
+ ["HEGGEBO","FW",62,24],["MAJA","FW",64,27],["GRANT","FW",63,28],["STEWART","FW",55,22]]},
+{n:"SHEFF UTD",c:"SHU",str:61,p:[["COOPER","GK",64,26],["GRBIC","GK",60,30],
+ ["MCGUINNESS","DF",62,25],["TANGANGA","DF",63,27],["BURROWS","DF",61,24],["NORRINGTON-DAVIES","DF",60,27],["SERIKI","DF",58,24],
+ ["HAMER","MF",68,29],["ARBLASTER","MF",61,22],["ROTHWELL","MF",63,31],["O'HARE","MF",62,28],["CHONG","MF",60,26],
+ ["CANNON","FW",62,23],["T.CAMPBELL","FW",60,26],["BAMFORD","FW",65,32],["ONE","FW",57,20]]},
+{n:"MIDDLESBROUGH",c:"MID",str:60,p:[["BRYNN","GK",62,25],["DIENG","GK",61,31],
+ ["FRY","DF",65,28],["EDMUNDSON","DF",60,28],["AYLING","DF",62,34],["BANGURA","DF",58,26],["MALANDA","DF",59,24],
+ ["MCGREE","MF",65,27],["MORRIS","MF",61,24],["SARMIENTO","MF",62,24],["WHITTAKER","MF",63,25],["CASTLEDINE","MF",58,20],
+ ["CONWAY","FW",62,23],["STRELEC","FW",61,25],["HAMILTON","FW",59,22],["SENE","FW",58,25]]},
+{n:"NORWICH CITY",c:"NOR",str:59,p:[["KOVACEVIC","GK",62,28],["GRIMSHAW","GK",58,28],
+ ["DARLING","DF",62,26],["MEDIC","DF",60,27],["STACEY","DF",59,30],["CHRISENE","DF",57,22],["CORDOBA","DF",58,25],
+ ["MCLEAN","MF",63,34],["BEN SLIMANE","MF",62,25],["GIBBS","MF",58,23],["MATTSSON","MF",60,24],["MAGHOMA","MF",59,25],
+ ["KVISTGAARDEN","FW",63,24],["CRNAC","FW",60,22],["JURASEK","FW",61,22],["DIALLO","FW",58,22]]},
+{n:"COVENTRY CITY",c:"COV",str:58,p:[["DOVIN","GK",60,23],["B.WILSON","GK",57,33],
+ ["B.THOMAS","DF",60,25],["KITCHING","DF",61,26],["LATIBEAUDIERE","DF",58,26],["VAN EWIJK","DF",59,25],["DASILVA","DF",60,28],
+ ["GRIMES","MF",65,30],["RUDONI","MF",61,25],["ECCLES","MF",58,26],["ONYEKA","MF",60,28],["SAKAMOTO","MF",62,29],
+ ["H.WRIGHT","FW",62,28],["SIMMS","FW",59,25],["THOMAS-ASANTE","FW",58,27],["MASON-CLARK","FW",57,26]]},
+{n:"BIRMINGHAM CITY",c:"BIR",str:57,p:[["ALLSOP","GK",58,34],["MAYO","GK",55,21],
+ ["KLARER","DF",61,26],["NEUMANN","DF",57,28],["J.ROBINSON","DF",58,32],["COCHRANE","DF",56,26],["OSAYI-SAMUEL","DF",60,28],
+ ["IWATA","MF",58,29],["GARDNER-HICKMAN","MF",57,24],["LEONARD","MF",56,24],["PAIK","MF",58,29],["FUJIMOTO","MF",55,27],
+ ["KYOGO","FW",66,30],["D.GRAY","FW",60,30],["STANSFIELD","FW",59,23],["DUCKSCH","FW",61,32]]},
+{n:"SHEFF WED",c:"SHW",str:57,p:[["P.CHARLES","GK",58,20],["STRETCH","GK",54,19],
+ ["BERNARD","DF",59,25],["L.COOPER","DF",60,34],["M.LOWE","DF",58,29],["L.PALMER","DF",59,34],["OTEGBAYO","DF",55,21],
+ ["FUSIRE","MF",56,21],["SLATTERY","MF",57,27],["THORNTON","MF",54,20],["LIONGOLA","MF",55,26],["VALERY","MF",56,27],
+ ["UGBO","FW",60,27],["MCNEILL","FW",57,22],["J.LOWE","FW",58,31],["GRAINGER","FW",52,17]]},
+{n:"HULL CITY",c:"HUL",str:56,p:[["BUTLAND","GK",60,33],["LO-TUTALA","GK",54,23],
+ ["EGAN","DF",59,33],["MCNAIR","DF",58,31],["COYLE","DF",57,30],["R.GILES","DF",58,26],["DRAMEH","DF",56,24],
+ ["SLATER","MF",59,26],["CROOKS","MF",58,32],["GYABI","MF",56,22],["MATAZO","MF",57,24],["DOWELL","MF",58,28],
+ ["MCBURNIE","FW",61,30],["K.JOSEPH","FW",56,24],["KAMARA","FW",57,22],["BELLOUMI","FW",56,24]]},
+{n:"BRISTOL CITY",c:"BRC",str:56,p:[["TICKLE","GK",58,24],["LUMLEY","GK",55,31],
+ ["ATKINSON","DF",58,27],["DICKIE","DF",59,30],["MCNALLY","DF",57,26],["PRING","DF",58,28],["TANNER","DF",57,26],
+ ["J.KNIGHT","MF",60,25],["M.BIRD","MF",57,25],["J.WILLIAMS","MF",58,29],["TWINE","MF",62,26],["RANDELL","MF",57,25],
+ ["RIIS","FW",60,28],["HIRAKAWA","FW",57,25],["S.BELL","FW",56,24],["YEBOAH","FW",54,19]]},
+{n:"PRESTON",c:"PNE",str:55,p:[["IVERSEN","GK",58,28],["NICHOLLS","GK",55,33],
+ ["STOREY","DF",57,28],["LINDSAY","DF",56,30],["A.HUGHES","DF",55,34],["VUKCEVIC","DF",56,29],["VALENTIN","DF",55,29],
+ ["MCCANN","MF",58,26],["WHITEMAN","MF",57,30],["J.THOMPSON","MF",56,29],["MORAN","MF",57,22],["T.CARROLL","MF",53,19],
+ ["OSMAJIC","FW",60,26],["M.SMITH","FW",57,34],["C.LANG","FW",55,27],["M.WILSON","FW",50,19]]},
+{n:"SWANSEA CITY",c:"SWA",str:55,p:[["VIGOUROUX","GK",57,32],["A.FISHER","GK",55,28],
+ ["CABANGO","DF",60,26],["WELSH","DF",56,26],["BURGESS","DF",55,30],["TYMON","DF",57,27],["J.KEY","DF",55,26],
+ ["FRANCO","MF",56,25],["STAMENIC","MF",56,24],["FULTON","MF",57,32],["L.CULLEN","MF",57,27],["WIDELL","MF",54,24],
+ ["IDAH","FW",58,25],["VIPOTNIK","FW",57,24],["INOUSSA","FW",55,24],["M.YEO","FW",53,22]]},
+{n:"BLACKBURN",c:"BLA",str:55,p:[["PEARS","GK",57,28],["TOTH","GK",53,28],
+ ["H.CARTER","DF",57,26],["WHARTON","DF",56,28],["MCLOUGHLIN","DF",55,29],["PICKERING","DF",56,27],["ALEBIOSU","DF",54,24],
+ ["FORSHAW","MF",57,34],["CANTWELL","MF",60,28],["MORISHITA","MF",55,29],["BARADJI","MF",55,25],["HENRIKSSON","MF",53,24],
+ ["AFOLAYAN","FW",57,28],["KARGBO","FW",55,26],["GUDJOHNSEN","FW",54,24],["OHASHI","FW",53,29]]},
+{n:"WATFORD",c:"WAT",str:54,p:[["BACHMANN","GK",57,31],["SELVIK","GK",54,28],
+ ["POLLOCK","DF",56,24],["KEBEN","DF",55,22],["BOLA","DF",55,28],["NGAKIA","DF",54,25],["PETRIS","DF",54,28],
+ ["DELE-BASHIRU","MF",57,26],["KYPRIANOU","MF",55,25],["LOUZA","MF",56,27],["BOVE","MF",58,24],["CHAKVETADZE","MF",57,26],
+ ["BAAH","FW",55,23],["R.VATA","FW",54,21],["DOUMBIA","FW",53,20],["SEMEDO","FW",52,21]]},
+{n:"MILLWALL",c:"MIL",str:53,p:[["CROCOMBE","GK",55,32],["L.JENSEN","GK",53,27],
+ ["J.COOPER","DF",56,31],["CRAMA","DF",55,24],["C.TAYLOR","DF",54,23],["STURGE","DF",53,22],["R.LEONARD","DF",54,34],
+ ["B.MITCHELL","MF",56,25],["DE NORRE","MF",55,29],["CUNDLE","MF",57,24],["BANNAN","MF",60,36],["DOUGHTY","MF",54,26],
+ ["IVANOVIC","FW",54,21],["COBURN","FW",55,23],["LANGSTAFF","FW",56,29],["ARCONTE","FW",52,22]]},
+{n:"STOKE CITY",c:"STK",str:53,p:[["JOHANSSON","GK",56,27],["GRIFFITHS","GK",53,24],
+ ["WILMOT","DF",55,26],["B.GIBSON","DF",55,33],["BOCAT","DF",54,26],["CRESSWELL","DF",55,36],["LAWAL","DF",53,23],
+ ["B.PEARSON","MF",55,31],["INGELSSON","MF",54,28],["GALBRAITH","MF",54,25],["T.RIGO","MF",53,23],["BAE","MF",53,22],
+ ["S.THOMAS","FW",55,27],["BOZENIK","FW",55,26],["GALLAGHER","FW",56,30],["MANHOEF","FW",53,24]]},
+{n:"DERBY COUNTY",c:"DER",str:52,p:[["ZETTERSTROM","GK",55,27],["VICKERS","GK",52,30],
+ ["SANDERSON","DF",55,26],["M.CLARKE","DF",54,29],["MURKIN","DF",54,26],["NYAMBE","DF",53,28],["LANGAS","DF",52,25],
+ ["TRAVIS","MF",54,28],["B.CLARK","MF",56,21],["GOUDMIJN","MF",54,24],["FRAULO","MF",53,22],["L.THOMPSON","MF",52,24],
+ ["BREWSTER","FW",56,26],["C.MORRIS","FW",54,30],["AGYEMANG","FW",53,25],["BLACKETT-TAYLOR","FW",52,28]]},
+{n:"QPR",c:"QPR",str:51,p:[["J.WALSH","GK",53,24],["M.COOPER","GK",51,24],
+ ["CLARKE-SALTER","DF",54,28],["R.EDWARDS","DF",53,23],["MBENGUE","DF",52,24],["KEMPER","DF",52,27],["J.DUNNE","DF",53,28],
+ ["CHAIR","MF",57,28],["DEMBELE","MF",56,23],["MADSEN","MF",53,26],["VARANE","MF",52,24],["DIXON-BONNER","MF",51,25],
+ ["CELAR","FW",54,27],["POKU","FW",53,24],["SAITO","FW",52,24],["R.KONE","FW",51,22]]},
+{n:"PORTSMOUTH",c:"POR",str:51,p:[["N.SCHMID","GK",53,29],["BURSIK","GK",52,25],
+ ["J.KNIGHT","DF",53,28],["SHAUGHNESSY","DF",52,30],["OGILVIE","DF",53,30],["J.WILLIAMS","DF",51,26],["R.POOLE","DF",51,28],
+ ["DOZZELL","MF",54,27],["J.SWIFT","MF",56,31],["M.PACK","MF",53,35],["E.ADAMS","MF",52,30],["KOSZNOVSZKY","MF",51,24],
+ ["C.BISHOP","FW",55,29],["J.MURPHY","FW",53,31],["SEGECIC","FW",52,22],["K.ANDERSON","FW",51,31]]},
+{n:"OXFORD UNITED",c:"OXU",str:49,p:[["J.CUMMING","GK",52,26],["EASTWOOD","GK",50,37],
+ ["HELIK","DF",53,30],["F.KENT","DF",52,30],["G.LEIGH","DF",51,31],["KIOSO","DF",51,26],["J.GOLDING","DF",49,21],
+ ["VAULKS","MF",53,32],["BRANNAGAN","MF",55,30],["SIBLEY","MF",51,24],["DE KEERSMAECKER","MF",50,26],["FERDINAN","MF",50,21],
+ ["ROMENY","FW",52,26],["PRELEC","FW",51,25],["M.HARRIS","FW",51,27],["DEMBELE","FW",50,29]]},
+{n:"WREXHAM",c:"WRE",str:47,p:[["OKONKWO","GK",51,24],["D.WARD","GK",50,33],
+ ["COADY","DF",55,33],["ZAK VYNER","DF",50,29],["CACACE","DF",51,25],["D.SCARR","DF",49,31],["HYAM","DF",49,30],
+ ["B.SHEAF","MF",51,28],["L.O'BRIEN","MF",53,27],["DOBSON","MF",50,28],["RATHBONE","MF",50,29],["MATTY JAMES","MF",49,34],
+ ["BROADHEAD","FW",53,28],["K.MOORE","FW",51,33],["R.HARDIE","FW",50,29],["WINDASS","FW",51,32]]},
+{n:"CHARLTON",c:"CHA",str:46,p:[["KAMINSKI","GK",52,33],["MANNION","GK",47,28],
+ ["LLOYD JONES","DF",49,30],["R.BURKE","DF",48,29],["AMARI'I BELL","DF",49,32],["K.RAMSAY","DF",47,25],["MESIK","DF",46,25],
+ ["COVENTRY","MF",50,26],["DOCHERTY","MF",48,29],["S.CAREY","MF",48,25],["KNIBBS","MF",47,27],["K.ANDERSON","MF",45,21],
+ ["DYKES","FW",51,30],["KELMAN","FW",48,24],["GODDEN","FW",48,34],["LEABURN","FW",46,22]]},
+];
+const CHAMP_SIZE=CHAMPIONSHIP.length;
+// Championship overall level bumped up — real second-tier quality sits closer to the PL floor
+const CHAMP_BOOST=10;
+CHAMPIONSHIP.forEach(t=>{
+  t.str=Math.min(95,t.str+CHAMP_BOOST);
+  t.p=t.p.map(([n,pos,rat,age])=>[n,pos,Math.min(95,rat+CHAMP_BOOST),age]);
+  TEAMS.push(t);
+});
+const DIV2_SIZE=DIV1_SIZE+CHAMP_SIZE;
+
+// League One clubs held in reserve to rotate into the Championship's bottom 3 each season
+const L1_POOL=[["WIGAN","WIG",46],["BOLTON","BOL",47],["READING","REA",45],
+ ["BLACKPOOL","BPL",44],["BARNSLEY","BAR",45],["STOCKPORT","SPT",44],["LINCOLN CITY","LIN",43],
+ ["ROTHERHAM","ROT",44],["HUDDERSFIELD","HUD",46],["LEYTON ORIENT","ORI",43],
+ ["PETERBOROUGH","PET",44],["EXETER CITY","EXE",42]];
+
+// ---------- EUROPEAN CLUBS (opponents only — not part of the English pyramid) ----------
+const EURO_CLUBS=[
+["REAL MADRID","RMA",94],["BARCELONA","BAR",92],["BAYERN MUNICH","BAY",93],["PARIS SG","PSG",92],
+["INTER MILAN","INT",89],["JUVENTUS","JUV",86],["NAPOLI","NAP",85],["ATLETICO MADRID","ATM",85],
+["BAYER LEVERKUSEN","LEV",84],["DORTMUND","DOR",83],["BENFICA","BEN",82],
+["RB LEIPZIG","RBL",81],["SPORTING CP","SPO",81],["ATALANTA","ATA",80],["AJAX","AJA",79],
+["AS ROMA","ROM",79],["MARSEILLE","OM",79],["MONACO","MON",78],["PSV EINDHOVEN","PSV",78],
+["GALATASARAY","GAL",78],["ATHLETIC BILBAO","ATH",78],["LAZIO","LAZ",77],
+["EINTRACHT","SGE",77],["LYON","LYO",76],["FENERBAHCE","FEN",76],
+["FEYENOORD","FEY",76],["VILLARREAL","VIL",76],["REAL SOCIEDAD","RSO",75],["LILLE","LIL",75],
+["CELTIC","CEL",75],["SEVILLA","SEV",74],["BOLOGNA","BOL",74],["CLUB BRUGGE","BRU",73],
+["RANGERS","RAN",73],["AC MILAN","ACM",88],
+];
+const EURO_SIZE=EURO_CLUBS.length;
+EURO_CLUBS.forEach(([n,c,str])=>TEAMS.push({n,c,str,p:[]}));
+const N=TEAMS.length;
+const UCL_POOL=EURO_CLUBS.map((_,i)=>DIV2_SIZE+i).sort((a,b)=>TEAMS[b].str-TEAMS[a].str).slice(0,18);
+const UEL_POOL=EURO_CLUBS.map((_,i)=>DIV2_SIZE+i).sort((a,b)=>TEAMS[b].str-TEAMS[a].str).slice(18);
+const DIVNAME={1:'PREMIER LEAGUE',2:'CHAMPIONSHIP'};
+const DIVSIZE={1:DIV1_SIZE,2:CHAMP_SIZE};
+
+const FLAVOR=["CORNER TO {T}","{P} SHOOTS JUST WIDE","GREAT SAVE DENIES {P}","{P} BOOKED",
+ "{P} HEADER OVER THE BAR","FREE KICK TO {T}, GOOD AREA","{P} SKIES IT FROM SIX YARDS",
+ "{P} HITS THE POST!","BIG APPEALS FOR A {T} PENALTY","{P} LIMPS OFF, PLAYS ON"];
+const ADS=["CALL 0898-224466 FOR HOT TIPS P.340","3 SHELL SUITS £9.99 - TELESHOP P.150",
+ "WIN A £8000 CARAVAN! ENTER P.555","HONEST RON'S MOTORS: MOTS £29 P.888","7 NIGHTS COSTA DEL SOL £59 P.460",
+ "YOUR STARS TODAY 0891-100 P.170","DOUBLE GLAZING FROM £99/WINDOW P.221",
+ "PSYCHIC PAT: TONIGHT'S SCORE P.171","LOSE 7LBS IN A WEEK - DETAILS P.199","FLIGHTS TO SPAIN FROM £29.99 P.461",
+ "WIN £500 CASH! ENTER NOW - P.556","3-SEATER SOFA JUST £99 - P.151","STATIC CARAVAN WEEKS £89 P.556",
+ "DATELINE 0891-700 - DETAILS P.180","HORLICKS 200G JAR £1.89 - P.152",
+ "COSTA APARTMENTS FROM £3995 P.402","RENT-A-VIDEO: NEW RELEASES P.153","MOT TEST £29.99 THIS WEEK P.888",
+ "BINGO JACKPOT NOW £12,000 - P.333","STAIRLIFTS FROM £995 FITTED P.154","SPOT THE BALL WIN A MINI P.777",
+ "DOUBLE YOUR MONEY - ENTER P.610","CAVITY WALL GRANTS UP TO £500 P.221","CHIP SHOP OF THE YEAR VOTE P.640",
+ "INTENSIVE DRIVING COURSE £199 P.415","FREE SATELLITE DISH - DETAILS P.155","TAROT READINGS 24HRS 0898-101 P.171",
+ "KNITWEAR SALE: CARDIGANS £12 P.156","WIN A SPEEDBOAT WORTH £4000 P.719","BINGO CALLERS WANTED £40/NIGHT P.333",
+ "COMPUTER COURSES £45/TERM P.157","CONSERVATORIES FROM £999 - P.221","PIGEON RACING RESULTS TODAY P.811",
+ "STRONGEST MAN HIGHLIGHTS - P.641","HEDGE TRIMMING FROM £15 - P.158","CARAVANS WANTED, CASH PAID P.556",
+ "MEET SINGLES TONIGHT 0891-800 P.180","FREEZER FOOD: 20 MEALS £15 P.450","GARDEN SHEDS HALF PRICE - P.159",
+ "UNCLE BARRY'S RACING TIPS P.341","DARTS ARROWS SET ONLY £6.99 P.642","SNOOKER CUES REPAIRED - P.642",
+ "CAR BOOT SALE SUN, PITCH £5 P.902","PONY CLUB RALLY RESULTS - P.812","WIN 2 CUP FINAL TICKETS - P.557",
+ "CROSSWORD PRIZE £50 - ENTER P.231","NET CURTAINS BOGOF - P.160","BUDGERIGAR SOCIETY SHOW - P.512",
+ "ALLOTMENT SEEDS 50P A PACK P.161","TALKING CLOCK: DIAL 123 - P.100","WEATHER FORECAST - PAGE 401",
+ "TRAVEL NEWS - PAGE 190","HOROSCOPES FOR THE WEEK - P.170","PONTINS SUMMER WEEKS £89 - P.460",
+ "BUTLINS REDCOATS WANTED - P.410","SHELL SUITS 2 FOR £15 - P.150","VIDEO CLUB: JOIN FOR £5/YEAR P.153",
+ "CB RADIO CLUB MEETS THURS P.813","WORKING MEN'S CLUB DISCO FRI P.643","FRUIT MACHINE JACKPOT £250 P.333",
+ "SPACE HOPPERS NOW £4.99 - P.162","HOME PERM KIT HALF PRICE - P.163","LOFT INSULATION FREE QUOTE P.221",
+ "SOFT FURNISHINGS CLEARANCE P.164","MICROWAVE MEALS 10P OFF - P.450","STICKER SWAPS: GOT, GOT, NEED P.644",
+ "PIGEON FANCIERS WEEKLY - P.811","GREYHOUND RESULTS - 6.45 P.520","SPEAK-YOUR-WEIGHT HIRE £2/DAY P.165",
+ "DINNER SUIT HIRE FROM £20 - P.166","CRAZY GOLF SCORECARDS 50P P.167","TUPPERWARE PARTIES: HOST ONE P.168",
+ "ROLLER DISCO SAT 7PM £2 ENTRY P.645","CHIP PAN FIRE SAFETY - DETAILS P.101","READERS' RECIPES: THIS WEEK'S P.240",
+ "SPOT THE MISTAKE, WIN £10 - P.558","CROSSWORD PRIZE DRAW £25 - P.230","FANCY DRESS HIRE FROM £8 - P.169",
+ "TRAMPOLINE HIRE £15/DAY - P.646","BOOT SALE PITCHES £5 - SUN P.902",
+ "ANTIQUE REPAIRS? FETTLEFIX.COM P.520",
+ "METAL DETECTING CLUB MEETS SUN P.812","ANTIQUES ROADSHOW HIGHLIGHTS P.520",
+ "STAMP FAIR SAT, FREE ENTRY P.512","RARE COINS WANTED, CASH PAID P.512",
+ "MODEL RAILWAY SHOW £3 ENTRY P.647","BRASS BAND CONTEST RESULTS P.811",
+ "MORRIS DANCERS WANTED - P.814","PUB QUIZ TUES 8PM, WIN £20 P.648",
+ "KARAOKE NIGHT FRI, FREE ENTRY P.643","TEN PIN BOWLING HALF PRICE MON P.649",
+ "ICE RINK DISCO SAT £3 ENTRY P.650","DONKEY RIDES 50P - SEASIDE P.462",
+ "PIE AND MASH 99P THIS WEEK P.451","WEDDING FAIR SUN, FREE ENTRY P.402",
+ "L-PLATES AND MIRRORS £2.50 P.415","VEHICLE RECOVERY £25/YEAR P.416",
+ "STATIC CARAVAN FROM £4995 P.556","TODAY'S EXCHANGE RATES - P.191",
+ "PREMIUM BONDS: CHECK YOUR WIN P.220","FOOTBALL POOLS: THIS WEEK P.342",
+ "FISHING TACKLE SALE 20% OFF P.651","GARDEN GNOMES £3.99 BOGOF P.172",
+ "GREENHOUSE SALE FROM £149 P.173","WALLPAPER CLEARANCE HALF PRICE P.174",
+ "LOCKSMITH 24HR CALLOUT £35 P.175","WINDOW CLEANER WANTED £8/HR P.417",
+ "GUTTER CLEANING FREE QUOTES P.176","CLAIRVOYANT EVENINGS 0898-900 P.177",
+ "SPIRITUALIST CHURCH SUN 6PM P.178","PEN PALS WANTED, ALL AGES P.230",
+ "HAM RADIO CLUB: NEW MEMBERS P.813","FOSSIL HUNTING WEEKEND £8 P.812",
+ "ROCK AND MINERAL SHOW £2 P.512","SCHOOL REUNION NOTICES - P.230",
+ "SILVER WEDDING NOTICES - P.231"];
+const RIVALRIES=[
+ ["ARSENAL","TOTTENHAM"],["LIVERPOOL","EVERTON"],["MAN UTD","MAN CITY"],["MAN UTD","LIVERPOOL"],
+ ["CHELSEA","TOTTENHAM"],["NEWCASTLE","SUNDERLAND"],["CRYSTAL PALACE","BRIGHTON"],
+ ["SHEFF UTD","SHEFF WED"],["NORWICH CITY","IPSWICH TOWN"],
+ ["PORTSMOUTH","SOUTHAMPTON"],["PRESTON","BLACKBURN"],["DERBY COUNTY","LEICESTER CITY"],
+ ["WEST BROM","BIRMINGHAM CITY"],["MILLWALL","WEST HAM"],
+];
+function isDerby(a,b){
+  const na=TEAMS[a].n,nb=TEAMS[b].n;
+  return RIVALRIES.some(([x,y])=>(x===na&&y===nb)||(x===nb&&y===na));
+}
+
+// ---------- state ----------
+let state=null, cur=300, live=null, kbuf='', viewMD=0, selDiv=1, tableDiv=null;
+
+function genFixtures(teamIdxs){
+  const arr=[...teamIdxs],n=arr.length,rounds=[];
+  for(let r=0;r<n-1;r++){
+    const ms=[];
+    for(let i=0;i<n/2;i++){
+      const a=arr[i],b=arr[n-1-i];
+      ms.push(r%2===0?[a,b]:[b,a]);
+    }
+    rounds.push(ms);
+    arr.splice(1,0,arr.pop());
+  }
+  return rounds.concat(rounds.map(ms=>ms.map(([h,a])=>[a,h])));
+}
+function spacedFractions(count){
+  const out=[];
+  for(let k=1;k<=count;k++)out.push(k/(count+1));
+  return out;
+}
+function buildSchedule(euro){
+  const seasonLen=DIVSIZE[myDiv()]*2-2;
+  const withPos=[];
+  spacedFractions(6).forEach(pos=>withPos.push({e:{t:'C'},pos}));
+  if(euro){
+    spacedFractions(8).forEach(pos=>withPos.push({e:{t:'E',stage:'LEAGUE'},pos:pos*0.75}));
+    withPos.push({e:{t:'E',stage:'PLAYOFF'},pos:0.80});
+    withPos.push({e:{t:'E',stage:'QF'},pos:0.86});
+    withPos.push({e:{t:'E',stage:'SF'},pos:0.92});
+    withPos.push({e:{t:'E',stage:'FINAL'},pos:0.97});
+  }
+  withPos.sort((a,b)=>a.pos-b.pos);
+  const schedule=[];
+  let ei=0;
+  for(let i=0;i<seasonLen;i++){
+    schedule.push({t:'L',md:i});
+    const fracHere=(i+1)/seasonLen;
+    while(ei<withPos.length&&withPos[ei].pos<=fracHere){schedule.push(withPos[ei].e);ei++;}
+  }
+  while(ei<withPos.length){schedule.push(withPos[ei].e);ei++;}
+  return schedule;
+}
+function initCup(){
+  const pool=divTeams(1).concat(divTeams(2));
+  return {alive:pool,round:0,ties:null,bye:null,out:false,winner:null,hist:[]};
+}
+function divTeams(d){
+  const out=[];
+  for(let i=0;i<N;i++)if(state.div[i]===d)out.push(i);
+  return out;
+}
+function myDiv(){return state.div[state.teamIdx];}
+function otherDiv(){return myDiv()===1?2:1;}
+function genSquad(str,euro){
+  const surnames=euro?EURO_SUR:YSUR;
+  const out=[];
+  const mk=(pos,ratOff)=>{
+    let name,guard=0;
+    do{name=YINIT[rnd(YINIT.length)]+'.'+pick(surnames);}while(out.some(p=>p[0]===name)&&guard++<50);
+    out.push([name,pos,clamp(str+ratOff+rnd(7)-3,40,95),18+rnd(15)]);
+  };
+  for(let i=0;i<2;i++)mk('GK',i===0?0:-6);
+  for(let i=0;i<5;i++)mk('DF',i<3?0:-5);
+  for(let i=0;i<5;i++)mk('MF',i<3?0:-5);
+  for(let i=0;i<4;i++)mk('FW',i<2?0:-5);
+  return out;
+}
+function ensureSquadData(){
+  // Championship clubs (DIV1_SIZE..DIV2_SIZE) already carry real 2025/26 rosters.
+  // Only European opponents get procedurally generated squads, refreshed each new career.
+  for(let i=DIV2_SIZE;i<N;i++)TEAMS[i].p=genSquad(TEAMS[i].str,true);
+}
+function simRoundInstant(pairs){
+  return pairs.map(([h,a])=>{
+    let hs=0,as=0;
+    const hAtt=teamAtt(h)+3,hDef=teamDef(h)+3,aAtt=teamAtt(a),aDef=teamDef(a);
+    for(let min=0;min<90;min++){
+      if(Math.random()<0.0128*Math.pow(hAtt/aDef,1.6))hs++;
+      if(Math.random()<0.0108*Math.pow(aAtt/hDef,1.6))as++;
+    }
+    return {h,a,hs,as};
+  });
+}
+function finishOtherDivision(){
+  const od=otherDiv(),total=DIVSIZE[od]*2-2,fx=state.fx[od];
+  while(state.res[od].length<total)state.res[od].push(simRoundInstant(fx[state.res[od].length]));
+}
+function syncOtherDivision(){
+  const od=otherDiv(),my=myDiv();
+  const total=DIVSIZE[my]*2-2,otherTotal=DIVSIZE[od]*2-2;
+  const myDone=state.res[my].length;
+  const target=Math.round(otherTotal*(myDone/total));
+  const fx=state.fx[od];
+  while(state.res[od].length<target&&state.res[od].length<otherTotal)
+    state.res[od].push(simRoundInstant(fx[state.res[od].length]));
+}
+function singleMatchWinner(a,b){
+  const r=simRoundInstant([[a,b]])[0];
+  if(r.hs!==r.as)return r.hs>r.as?a:b;
+  return Math.random()<TEAMS[a].str/(TEAMS[a].str+TEAMS[b].str)?a:b;
+}
+function clubBudget(t){return Math.max(5,Math.round((TEAMS[t].str-55)*3+15));}
+function newGame(teamIdx){
+  ensureSquadData();
+  const div=teamIdx<DIV1_SIZE?1:2;
+  state={v:7,teamIdx,season:1,tactic:'BAL',speed:'x2',formation:'442',
+    budget:clubBudget(teamIdx),market:[],
+    div:TEAMS.map((_,i)=>i<DIV1_SIZE?1:i<DIV2_SIZE?2:3),
+    sp:0,cup:null,conf:60,news:[],sacked:false,
+    rep:div===1?30:15,offer:null,honours:[],snd:true,euro:null,lineup:[],rejected:{},
+    freeAgents:[],target:null,tots:[],
+    squads:TEAMS.map(t=>t.p.map(([name,pos,rat,age])=>
+      ({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,contract:1+rnd(4)})))};
+  state.fx={1:genFixtures(divTeams(1)),2:genFixtures(divTeams(2))};
+  state.res={1:[],2:[]};
+  state.cup=initCup();
+  state.schedule=buildSchedule(false);
+  state.target=computeTarget();
+  autoPick();refreshListings();save();go(300);
+}
+function goldenBoot(){
+  let best=null,g=0;
+  state.squads.forEach((sq,t)=>sq.forEach(p=>{
+    if(p.goals>g){g=p.goals;best=p.name+' ('+TEAMS[t].c+') '+g;}}));
+  return best||'-';
+}
+function computeTarget(){
+  const div=myDiv(),rivals=divTeams(div),sz=DIVSIZE[div];
+  const rank=1+rivals.filter(i=>TEAMS[i].str>TEAMS[state.teamIdx].str).length;
+  if(rank<=Math.ceil(sz*0.15))return{label:div===1?'WIN THE TITLE':'WIN PROMOTION',max:div===1?3:6};
+  if(rank<=Math.ceil(sz*0.4))return{label:div===1?'EUROPEAN FOOTBALL':'PUSH FOR THE PLAY-OFFS',max:div===1?7:10};
+  if(rank<=Math.ceil(sz*0.75))return{label:'A MID-TABLE FINISH',max:Math.ceil(sz*0.75)};
+  return{label:'AVOID RELEGATION',max:sz-3};
+}
+function computeTOTS(div){
+  const pool=divTeams(div),cands=[];
+  pool.forEach(t=>state.squads[t].forEach(p=>
+    cands.push({name:p.name,pos:p.pos,club:TEAMS[t].c,score:p.rat+p.goals*1.5})));
+  const top=(pos,n)=>cands.filter(c=>c.pos===pos).sort((a,b)=>b.score-a.score).slice(0,n);
+  return[...top('GK',1),...top('DF',4),...top('MF',4),...top('FW',2)]
+    .map(c=>({name:c.name,pos:c.pos,club:c.club}));
+}
+function playerWage(p){return Math.max(1,Math.round(val(p)*0.08));}
+function totalWageBill(){return mySquad().reduce((s,p)=>s+playerWage(p),0);}
+function renewContract(i){
+  const p=mySquad()[i];if(!p||p.contract>1)return;
+  const cost=Math.max(1,Math.round(val(p)*0.1));
+  if(state.budget<cost){msg='NOT ENOUGH FUNDS TO RENEW';render();return;}
+  state.budget-=cost;p.contract=3;
+  msg=p.name+' SIGNS A NEW DEAL';
+  addNews(p.name+' SIGNS A NEW CONTRACT AT '+TEAMS[state.teamIdx].n);
+  save();render();
+}
+function signFreeAgent(idx){
+  if(!windowOpen()){msg='TRANSFER WINDOW CLOSED';render();return;}
+  const p=state.freeAgents[idx];if(!p)return;
+  if(mySquad().length>=20){msg='SQUAD FULL (MAX 20)';render();return;}
+  state.freeAgents.splice(idx,1);
+  mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:0,inj:0,sus:0,age:p.age,
+    listed:false,contract:2+rnd(2)});
+  msg=p.name+' SIGNED ON A FREE TRANSFER!';
+  addNews(p.name+' JOINS '+TEAMS[state.teamIdx].n+' ON A FREE TRANSFER');
+  save();render();
+}
+function rivalManagerNews(){
+  if(Math.random()>=0.03)return;
+  const pool=divTeams(1).concat(divTeams(2)).filter(i=>i!==state.teamIdx);
+  addNews(TEAMS[pick(pool)].n+' SACK THEIR MANAGER');
+}
+function newSeason(){
+  const wasDiv=myDiv(),pos=myPos(wasDiv),wonCup=state.cup.winner===state.teamIdx;
+  state.news=[];
+  let qualifiesEuro=null;
+  if(wasDiv===1){
+    if(pos<=4)qualifiesEuro='UCL';
+    else if(pos===5||(wonCup&&pos<=8))qualifiesEuro='UEL';
+  }
+  state.honours.push({s:state.season,team:TEAMS[state.teamIdx].c,div:wasDiv,pos,
+    champ:TEAMS[table(wasDiv)[0].i].c,
+    cup:wonCup?'WON':state.cup.out?'OUT':'-',
+    euro:state.euro?(state.euro.comp+' '+(state.euro.result||state.euro.stage)):'-',
+    gb:goldenBoot()});
+  state.tots=computeTOTS(wasDiv);
+  if(state.target){
+    const hitTarget=pos<=state.target.max;
+    state.rep=clamp(state.rep+(hitTarget?5:-5),0,99);
+    state.conf=clamp(state.conf+(hitTarget?8:-8),0,100);
+    addNews((hitTarget?'BOARD TARGET MET: ':'BOARD TARGET MISSED: ')+state.target.label);
+  }
+  state.rep=clamp(state.rep+clamp(15-pos,-3,10)+(wonCup?8:0)+(pos===1?15:0),0,99);
+  state.budget+=Math.round(10+(DIVSIZE[wasDiv]+1-pos)*2);
+  state.season++;state.offer=null;
+
+  // ---- resolve the pyramid: promotion & relegation for both divisions ----
+  finishOtherDivision();
+  const d1tab=table(1),d2tab=table(2);
+  const relegatedFromD1=d1tab.slice(-3).map(r=>r.i);
+  const autoUp=d2tab.slice(0,2).map(r=>r.i);
+  const playoffTeams=d2tab.slice(2,6).map(r=>r.i);
+  const sf1w=singleMatchWinner(playoffTeams[0],playoffTeams[3]);
+  const sf2w=singleMatchWinner(playoffTeams[1],playoffTeams[2]);
+  const finalWin=singleMatchWinner(sf1w,sf2w);
+  const relegatedFromD2=d2tab.slice(-3).map(r=>r.i);
+
+  relegatedFromD1.forEach(i=>{addNews(TEAMS[i].n+' RELEGATED FROM THE PREMIER LEAGUE');state.div[i]=2;});
+  autoUp.forEach(i=>{addNews(TEAMS[i].n+' PROMOTED TO THE PREMIER LEAGUE');state.div[i]=1;});
+  state.div[finalWin]=1;
+  addNews(TEAMS[finalWin].n+' WIN THE PLAY-OFF FINAL - PROMOTED!');
+  if(playoffTeams.includes(state.teamIdx)){
+    if(finalWin===state.teamIdx)addNews(TEAMS[state.teamIdx].n+' PROMOTED VIA THE PLAY-OFFS!');
+    else if(sf1w===state.teamIdx||sf2w===state.teamIdx)addNews(TEAMS[state.teamIdx].n+' LOSE THE PLAY-OFF FINAL - HEARTBREAK');
+    else addNews(TEAMS[state.teamIdx].n+' OUT OF THE PLAY-OFFS AT THE SEMI-FINAL');
+  }
+  let userRelegatedToL1=false;
+  const l1Draw=[...L1_POOL].sort(()=>Math.random()-.5);
+  relegatedFromD2.forEach(i=>{
+    if(i===state.teamIdx){userRelegatedToL1=true;return;}
+    const old=TEAMS[i].n,[nn,cc,ss]=l1Draw.pop()||pick(L1_POOL);
+    TEAMS[i].n=nn;TEAMS[i].c=cc;TEAMS[i].str=ss;TEAMS[i].p=genSquad(ss,false);
+    state.squads[i]=TEAMS[i].p.map(([name,pos,rat,age])=>({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,contract:1+rnd(4)}));
+    state.div[i]=2;
+    addNews(old+' RELEGATED TO LEAGUE ONE - REPLACED BY '+nn);
+  });
+
+  // ageing, development, retirements, youth intake, contract expiry
+  const retired=[],departedFree=[];
+  state.squads.forEach((sq,ti)=>{
+    for(let i=sq.length-1;i>=0;i--){
+      const p=sq[i];
+      p.age++;
+      if(p.age<=23)p.rat=clamp(p.rat+rnd(3),40,95);
+      else if(p.age<=29)p.rat=clamp(p.rat+rnd(3)-1,40,95);
+      else p.rat=clamp(p.rat-rnd(3),40,95);
+      p.contract=(p.contract||1)-1;
+      if(p.age>=35||(p.age>=33&&p.rat<62&&Math.random()<0.5)){
+        if(ti===state.teamIdx)retired.push(p.name);
+        sq[i]=youth(p.pos,TEAMS[ti].str,sq);
+        continue;
+      }
+      if(p.contract<=0){
+        if(ti===state.teamIdx){
+          departedFree.push(p.name);
+          sq.splice(i,1);
+        }else if(Math.random()<0.3){
+          sq.splice(i,1);
+          state.freeAgents.push({name:p.name,pos:p.pos,rat:clamp(p.rat-3,40,90),age:p.age});
+          if(state.freeAgents.length>15)state.freeAgents.shift();
+        }else p.contract=2+rnd(3);
+      }
+    }
+    sq.forEach(p=>{p.goals=0;p.form=0;p.inj=0;p.sus=0;});
+  });
+  retired.forEach(n=>addNews(n+' RETIRES. YOUTH PROMOTED'));
+  departedFree.forEach(n=>addNews(n+' LEAVES ON A FREE TRANSFER - CONTRACT EXPIRED'));
+
+  if(userRelegatedToL1){
+    state.sacked=true;
+    addNews(TEAMS[state.teamIdx].n+' RELEGATED TO LEAGUE ONE - MANAGER SACKED');
+    save();go(300);return;
+  }
+
+  state.fx={1:genFixtures(divTeams(1)),2:genFixtures(divTeams(2))};
+  state.res={1:[],2:[]};
+  state.cup=initCup();
+  state.target=computeTarget();
+  addNews('BOARD TARGET THIS SEASON: '+state.target.label);
+
+  if(qualifiesEuro){
+    const pool=qualifiesEuro==='UCL'?UCL_POOL:UEL_POOL;
+    const opponents=[...pool].sort(()=>Math.random()-.5).slice(0,8);
+    state.euro={comp:qualifiesEuro,opponents,played:[],pts:0,stage:'LEAGUE',
+      direct:false,eliminated:false,koOpp:null,koHome:false,result:null};
+    const fee=qualifiesEuro==='UCL'?20:10;
+    state.budget+=fee;
+    addNews(TEAMS[state.teamIdx].n+' QUALIFY FOR THE '+(qualifiesEuro==='UCL'?'CHAMPIONS LEAGUE':'EUROPA LEAGUE')+'! (+£'+fee+'M)');
+  }else state.euro=null;
+
+  state.schedule=buildSchedule(!!state.euro);
+  state.sp=0;
+  state.conf=clamp(state.conf,40,80);state.rejected={};
+  autoPick();refreshListings();live=null;save();go(300);
+}
+function resetAll(){localStorage.removeItem('teleboss_pl');state=null;live=null;go(300);}
+function save(){try{localStorage.setItem('teleboss_pl',JSON.stringify(state));}catch(e){}}
+function loadGame(){
+  try{const s=JSON.parse(localStorage.getItem('teleboss_pl'));if(s&&s.v===7)state=s;}catch(e){}
+}
+function manualSave(){
+  save();
+  msg='GAME SAVED';
+  render();
+}
+function exportSave(){
+  if(!state)return;
+  const blob=new Blob([JSON.stringify(state)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='teleboss-'+TEAMS[state.teamIdx].c+'-s'+state.season+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  msg='SAVE FILE DOWNLOADED';
+  render();
+}
+function triggerImport(){$('importFile').click();}
+function importSave(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      if(!parsed||parsed.v!==7){msg='INVALID OR INCOMPATIBLE SAVE FILE';render();return;}
+      state=parsed;live=null;save();go(300);
+    }catch(err){msg='COULD NOT READ SAVE FILE';render();}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+// ---------- squad / team helpers ----------
+const eff=p=>p.rat+p.form;
+function mySquad(){return state.squads[state.teamIdx];}
+const avail=p=>!p.inj&&!p.sus;
+function autoPick(){
+  const sq=mySquad(),idxs=sq.map((_,i)=>i);
+  const [d,m,f]=FORMS[state.formation]||FORMS['442'];
+  const byPos=pos=>idxs.filter(i=>sq[i].pos===pos&&avail(sq[i]))
+                      .sort((a,b)=>eff(sq[b])-eff(sq[a]));
+  state.lineup=[...byPos('GK').slice(0,1),...byPos('DF').slice(0,d),
+                ...byPos('MF').slice(0,m),...byPos('FW').slice(0,f)];
+  // top up with best fit remaining players if positions ran dry
+  const rest=idxs.filter(i=>avail(sq[i])&&!state.lineup.includes(i))
+                 .sort((a,b)=>eff(sq[b])-eff(sq[a]));
+  while(state.lineup.length<11&&rest.length)state.lineup.push(rest.shift());
+}
+function lineupOK(){
+  const sq=mySquad(),sel=state.lineup.map(i=>sq[i]);
+  const [d,m,f]=FORMS[state.formation]||FORMS['442'];
+  const cnt=pos=>sel.filter(p=>p.pos===pos).length;
+  return sel.length===11&&sel.every(avail)
+    &&cnt('GK')===1&&cnt('DF')===d&&cnt('MF')===m&&cnt('FW')===f;
+}
+function tgl(i){
+  const k=state.lineup.indexOf(i);
+  if(k>=0)state.lineup.splice(k,1);
+  else if(avail(mySquad()[i])&&state.lineup.length<11)state.lineup.push(i);
+  save();render();
+}
+function setTac(t){state.tactic=t;save();render();}
+
+// ---------- speed / money / transfers ----------
+const SPEEDS={x1:280,x2:140,x4:50,x8:12};
+const FORMS={'442':[4,4,2],'433':[4,3,3],'352':[3,5,2],'451':[4,5,1],'532':[5,3,2]};
+const YINIT='ABCDEFGHJKLMNPRSTW';
+const YSUR=['ASHFORD','BRIGGS','CALLOW','DACRE','EMSWORTH','FENWICK','GRICE','HALLAM',
+ 'IREDALE','JESSOP','KIRKBY','LOMAS','MABBUTT','NIXON','OGDEN','PADDOCK','QUIGLEY',
+ 'RUDDOCK','STANNARD','TILNEY','UNDERWOOD','VICKERS','WHARTON','YARDLEY'];
+const EURO_SUR=['MULLER','GARCIA','ROSSI','DUBOIS','SILVA','KOVAC','NILSSON','JANSEN','SANTOS',
+ 'FERREIRA','NOVAK','PETROV','SCHMIDT','MARTIN','LOPEZ','BERGER','HANSEN','KOWALSKI','MORALES','VIDAL'];
+let pend=null,msg='';
+function youth(pos,str,sq){
+  let name,guard=0;
+  do{name=YINIT[rnd(YINIT.length)]+'.'+pick(YSUR);}while(sq.some(p=>p.name===name)&&guard++<50);
+  return {name,pos,rat:clamp(str-12+rnd(9),40,80),form:0,goals:0,inj:0,sus:0,age:17+rnd(2),listed:false,contract:3+rnd(3)};
+}
+function setForm(k){state.formation=k;autoPick();save();render();}
+function tglSnd(){state.snd=!state.snd;save();render();}
+let actx=null;
+function beep(seq){
+  if(!state||state.snd===false)return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    let t=actx.currentTime;
+    for(const [f,d] of seq){
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.type='square';o.frequency.value=f;
+      g.gain.setValueAtTime(0.04,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+d/1000);
+      o.connect(g);g.connect(actx.destination);
+      o.start(t);o.stop(t+d/1000);
+      t+=d/1000;
+    }
+  }catch(e){}
+}
+function liveTac(k){
+  if(!live||live.done)return;
+  state.tactic=k;refreshUserStr();
+  live.log.push({t:"   TACTICS: "+(k==='ATT'?'ALL OUT ATTACK':k==='DEF'?'SHUT UP SHOP':'BACK TO BALANCED'),c:'c'});
+  save();renderMainKeepScroll();
+}
+function acceptJob(){
+  const o=state.offer;if(!o)return;
+  addNews('MANAGER QUITS '+TEAMS[state.teamIdx].c+' FOR '+TEAMS[o.t].n);
+  state.teamIdx=o.t;
+  state.budget=clubBudget(o.t)+state.rep;
+  state.conf=55;state.offer=null;
+  autoPick();refreshListings();save();go(300);
+}
+function rejectJob(){
+  state.conf=clamp(state.conf+3,0,100);state.offer=null;
+  addNews('BOSS PLEDGES LOYALTY TO '+TEAMS[state.teamIdx].c);
+  save();render();
+}
+function setSpeed(k){
+  state.speed=k;save();
+  if(live&&!live.done)startTimer();
+  render();
+}
+function val(p){
+  const base=Math.pow(Math.max(1,p.rat-55),2)*0.08;
+  const f=p.age<=23?1.35:p.age<=28?1:p.age<=31?0.7:0.45;
+  return Math.max(1,Math.round(base*f));
+}
+// ---------- transfer windows ----------
+function windowInfo(){
+  const total=DIVSIZE[myDiv()]*2-2,md=curMd();
+  const summerEnd=Math.max(2,Math.round(total*0.08));
+  const janStart=Math.round(total*0.45),janEnd=Math.round(total*0.55);
+  return {total,md,summerEnd,janStart,janEnd,
+    open: md<summerEnd||(md>=janStart&&md<=janEnd)};
+}
+function windowOpen(){return windowInfo().open;}
+
+// ---------- transfer market ----------
+let marketClub=null,scoutDiv=null;
+function allListedPlayers(){
+  const out=[];
+  divTeams(1).concat(divTeams(2)).forEach(t=>{
+    if(t===state.teamIdx)return;
+    state.squads[t].forEach((p,idx)=>{if(p.listed)out.push({t,idx,p});});
+  });
+  out.sort((a,b)=>b.p.rat-a.p.rat);
+  return out;
+}
+function clubAppeal(t){
+  const d=state.div[t];
+  let a=TEAMS[t].str+(d===1?15:0);
+  const pos=table(d).findIndex(r=>r.i===t)+1;
+  if(pos>0)a+=clamp(10-pos,-6,8);
+  return a;
+}
+function willingness(p,fromClub,toClub){
+  const diff=clubAppeal(fromClub)-clubAppeal(toClub);
+  let w=0.85-diff*0.035;
+  if(p.age>=31)w+=0.15;
+  if(p.age<=21)w-=0.05;
+  return clamp(w,0.03,0.97);
+}
+function effectiveWillingness(p,fromClub){
+  return clamp(willingness(p,fromClub,state.teamIdx)+(p.listed?0.2:0),0.03,0.98);
+}
+function viewClub(t){marketClub=t;pend=null;msg='';render();}
+function backToClubs(){marketClub=null;pend=null;msg='';render();}
+// listed players are ones their club is actively trying to move on — discounted, and keener to go
+function listDiscount(p){
+  const age=clamp((p.age-24)*0.018,0,0.22);
+  return clamp(0.10+age,0.08,0.4);
+}
+function askingPrice(t,p){
+  const base=Math.round(val(p)*1.1);
+  return p.listed?Math.max(1,Math.round(base*(1-listDiscount(p)))):base;
+}
+function refreshListings(){
+  const pool=divTeams(1).concat(divTeams(2));
+  pool.forEach(t=>{
+    if(t===state.teamIdx)return;
+    const sq=state.squads[t];
+    const byRat=[...sq].sort((a,b)=>b.rat-a.rat);
+    sq.forEach(p=>{
+      if(p.listed){if(Math.random()<0.15)p.listed=false;return;}
+      const rank=byRat.indexOf(p);
+      if(rank<3)return; // clubs don't willingly sell their best players
+      let bias=(p.age>=30?0.05:0.01)+(p.rat<TEAMS[t].str-8?0.03:0);
+      if(rank>=sq.length-4)bias+=0.02; // fringe squad players move on more readily
+      if(Math.random()<bias)p.listed=true;
+    });
+  });
+}
+function sellPrice(p){
+  const fair=Math.max(1,Math.round(val(p)));
+  if(p.boughtFor!=null&&state.sp-p.boughtSp<8)return Math.max(1,Math.min(fair,p.boughtFor));
+  return fair;
+}
+function attemptSign(t,name,key){
+  const sq=state.squads[t],p=sq.find(x=>x.name===name);if(!p)return;
+  if(!windowOpen()){msg='TRANSFER WINDOW CLOSED';pend=null;render();return;}
+  const cost=askingPrice(t,p);
+  if(mySquad().length>=20){msg='SQUAD FULL (MAX 20)';pend=null;render();return;}
+  if(state.budget<cost){msg='NOT ENOUGH FUNDS';pend=null;render();return;}
+  const rk=t+':'+name;
+  state.rejected=state.rejected||{};
+  if(state.rejected[rk]&&state.sp<state.rejected[rk]){
+    msg=p.name+' STILL WON’T TALK TO YOU';pend=null;render();return;
+  }
+  if(pend!==key){pend=key;msg='';render();return;}
+  const w=effectiveWillingness(p,t);
+  if(Math.random()>w){
+    state.rejected[rk]=state.sp+6;
+    pend=null;msg=p.name+' TURNS DOWN THE MOVE';
+    save();render();return;
+  }
+  state.budget-=cost;
+  sq.splice(sq.indexOf(p),1);
+  mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:p.goals,inj:0,sus:0,age:p.age,
+    listed:false,boughtFor:cost,boughtSp:state.sp,contract:3+rnd(3)});
+  pend=null;msg=p.name+' SIGNED FOR £'+cost+'M!';
+  addNews(p.name+' SIGNS FOR '+TEAMS[state.teamIdx].n+' (£'+cost+'M)');
+  save();render();
+}
+function approachPlayer(t,idx){
+  const sq=state.squads[t],p=sq[idx];if(!p)return;
+  attemptSign(t,p.name,'a'+t+':'+idx);
+}
+function canSell(i){
+  const sq=mySquad();if(sq.length<=11)return false;
+  const cnt=pos=>sq.filter((p,j)=>j!==i&&p.pos===pos).length;
+  return cnt('GK')>=1&&cnt('DF')>=3&&cnt('MF')>=2&&cnt('FW')>=1;
+}
+function sell(i){
+  if(!windowOpen()){msg='TRANSFER WINDOW CLOSED';pend=null;render();return;}
+  const sq=mySquad(),p=sq[i];if(!p)return;
+  if(!canSell(i)){msg='CANNOT SELL - SQUAD TOO THIN';pend=null;render();return;}
+  if(pend!=='s'+i){pend='s'+i;msg='';render();return;}
+  const fee=sellPrice(p);
+  state.budget+=fee;
+  const k=state.lineup.indexOf(i);if(k>=0)state.lineup.splice(k,1);
+  state.lineup=state.lineup.map(j=>j>i?j-1:j);
+  sq.splice(i,1);
+  pend=null;msg=p.name+' SOLD FOR £'+fee+'M';
+  addNews(TEAMS[state.teamIdx].c+' CASH IN: '+p.name+' SOLD (£'+fee+'M)');
+  save();render();
+}
+
+function teamAtt(t){
+  if(t===state.teamIdx){
+    const sq=mySquad(),sel=state.lineup.map(i=>sq[i]);
+    const off=sel.filter(p=>p.pos==='MF'||p.pos==='FW');
+    let v=off.reduce((s,p)=>s+eff(p),0)/Math.max(1,off.length);
+    if(state.tactic==='ATT')v*=1.10;if(state.tactic==='DEF')v*=0.90;
+    return v;
+  }
+  return TEAMS[t].str+rnd(9)-4;
+}
+function teamDef(t){
+  if(t===state.teamIdx){
+    const sq=mySquad(),sel=state.lineup.map(i=>sq[i]);
+    const d=sel.filter(p=>p.pos==='GK'||p.pos==='DF');
+    let v=d.reduce((s,p)=>s+eff(p),0)/Math.max(1,d.length);
+    if(state.tactic==='ATT')v*=0.90;if(state.tactic==='DEF')v*=1.10;
+    return v;
+  }
+  return TEAMS[t].str+rnd(9)-4;
+}
+
+// ---------- league table ----------
+function table(div){
+  div=div||myDiv();
+  const idxs=divTeams(div),rowOf={};
+  const rows=idxs.map(i=>{const r={i,p:0,w:0,d:0,l:0,f:0,a:0,pts:0};rowOf[i]=r;return r;});
+  const results=state.res[div]||[];
+  for(const round of results)for(const m of round){
+    const H=rowOf[m.h],A=rowOf[m.a];
+    if(!H||!A)continue;
+    H.p++;A.p++;H.f+=m.hs;H.a+=m.as;A.f+=m.as;A.a+=m.hs;
+    if(m.hs>m.as){H.w++;H.pts+=3;A.l++;}
+    else if(m.hs<m.as){A.w++;A.pts+=3;H.l++;}
+    else{H.d++;A.d++;H.pts++;A.pts++;}
+  }
+  rows.sort((x,y)=>y.pts-x.pts||(y.f-y.a)-(x.f-x.a)||y.f-x.f);
+  return rows;
+}
+function myPos(div){div=div||myDiv();return table(div).findIndex(r=>r.i===state.teamIdx)+1;}
+
+// ---------- schedule / cup / news ----------
+function curMd(){return state.res[myDiv()].length;}
+function curEntry(){
+  while(state.sp<state.schedule.length){
+    const e=state.schedule[state.sp];
+    if(e.t==='E'){
+      if(!state.euro||state.euro.stage==='DONE'){state.sp++;continue;}
+      if(e.stage!==state.euro.stage){state.sp++;continue;}
+    }
+    return e;
+  }
+  return null;
+}
+function cupLabel(){
+  const a=state.cup.alive.length;
+  return a<=2?'FINAL':a<=4?'SEMI-FINAL':a<=8?'QUARTER-FINAL':'ROUND '+(state.cup.round+1);
+}
+function drawCup(){
+  const c=state.cup;if(c.ties)return;
+  const pool=[...c.alive].sort(()=>Math.random()-.5);
+  c.bye=pool.length%2?pool.pop():null;
+  c.ties=[];
+  for(let i=0;i<pool.length;i+=2)c.ties.push({h:pool[i],a:pool[i+1]});
+  save();
+}
+function addNews(s){
+  state.news.unshift('MD'+curMd()+': '+s);
+  state.news=state.news.slice(0,24);
+}
+function aiTransfer(){
+  if(!windowOpen())return;
+  if(Math.random()>=0.35)return;
+  const pool=divTeams(1).concat(divTeams(2));
+  const from=pick(pool),to=pick(pool);
+  if(from===to||from===state.teamIdx||to===state.teamIdx)return;
+  const sq=state.squads[from];if(sq.length<=12)return;
+  const i=rnd(sq.length),p=sq[i];
+  sq.splice(i,1);state.squads[to].push(p);
+  addNews(p.name+' JOINS '+TEAMS[to].n+' (£'+Math.round(val(p)*1.1)+'M)');
+}
+function boardMood(){
+  const c=state.conf;
+  return c>=80?['DELIGHTED','g']:c>=60?['HAPPY','g']:c>=40?['CONTENT','c']
+        :c>=20?['UNEASY','y']:['FURIOUS','rd'];
+}
+
+// ---------- match engine ----------
+function scorer(t){
+  const sq=state.squads[t];
+  const pool=(t===state.teamIdx)?state.lineup.map(i=>sq[i]):sq;
+  const w=p=>(p.pos==='FW'?6:p.pos==='MF'?2.5:p.pos==='DF'?0.8:0.05)*Math.max(1,p.rat-62);
+  let tot=pool.reduce((s,p)=>s+w(p),0),r=Math.random()*tot;
+  for(const p of pool){r-=w(p);if(r<=0)return p;}
+  return pool[pool.length-1];
+}
+function goal(m,home){
+  if(home)m.hs++;else m.as++;
+  const t=home?m.h:m.a,p=scorer(t);
+  p.goals++;
+  if(m===live.user){
+    const mine=(t===state.teamIdx);
+    beep(mine?[[880,90],[1318,150]]:[[392,100],[262,200]]);
+    live.log.push({t:padl(live.min,2)+"' GOAL! "+p.name+" ("+TEAMS[t].c+") "+m.hs+"-"+m.as,
+                   c:mine?'y':'rd'});
+  }else{
+    live.log.push({t:padl(live.min,2)+"' "+pad(TEAMS[m.h].c,4)+m.hs+"-"+m.as+" "+TEAMS[m.a].c,c:'c'});
+  }
+}
+function drawEuroKO(){
+  const eu=state.euro;if(!eu||eu.koOpp!=null)return;
+  const pool=(eu.comp==='UCL'?UCL_POOL:UEL_POOL).filter(i=>!eu.played.some(pl=>pl.opp===i));
+  eu.koOpp=pick(pool.length?pool:(eu.comp==='UCL'?UCL_POOL:UEL_POOL));
+  eu.koHome=Math.random()<0.5;
+  save();
+}
+function startMatch(){
+  if(live&&!live.done)return;
+  if(state.sacked)return;
+  const e=curEntry();if(!e)return;
+  if(!lineupOK())autoPick();
+  let pairs,title,isCup=false,isEuro=false;
+  if(e.t==='C'){
+    isCup=true;drawCup();pairs=state.cup.ties.map(t=>[t.h,t.a]);
+    title='CUP '+cupLabel();
+  }else if(e.t==='E'){
+    isEuro=true;
+    const eu=state.euro;
+    let opp,home;
+    if(e.stage==='LEAGUE'){
+      opp=eu.opponents[eu.played.length];home=eu.played.length%2===0;
+    }else{
+      drawEuroKO();opp=eu.koOpp;home=eu.koHome;
+    }
+    pairs=home?[[state.teamIdx,opp]]:[[opp,state.teamIdx]];
+    title=(eu.comp==='UCL'?'CHAMPIONS LEAGUE ':'EUROPA LEAGUE ')
+      +(e.stage==='LEAGUE'?'MATCH '+(eu.played.length+1)+'/8':e.stage);
+  }else{
+    pairs=state.fx[myDiv()][e.md];
+    title='MATCHDAY '+(state.res[myDiv()].length+1);
+  }
+  const userFx=pairs.find(([h,a])=>h===state.teamIdx||a===state.teamIdx);
+  const isRivalry=e.t==='L'&&userFx&&isDerby(userFx[0],userFx[1]);
+  live={min:0,done:false,cup:isCup,euro:isEuro,derby:isRivalry,log:[],uAtt:1,uDef:1,paused:false,awaitTalk:false,
+    title:isRivalry?'DERBY DAY! '+title:title,
+    ms:pairs.map(([h,a])=>({h,a,hs:0,as:0,
+      hAtt:teamAtt(h)+3,hDef:teamDef(h)+3,aAtt:teamAtt(a),aDef:teamDef(a)}))};
+  live.user=live.ms.find(m=>m.h===state.teamIdx||m.a===state.teamIdx)||null;
+  if(!live.user){ // cup round without your team: instant simulation
+    while(!live.done)simMinute();
+    render();return;
+  }
+  live.log.push({t:"KICK OFF",c:'g'});
+  startTimer();render();
+}
+function startTimer(){
+  clearInterval(live.timer);
+  live.lastT=performance.now();
+  live.timer=setInterval(pump,Math.max(16,Math.min(SPEEDS[state.speed]||140,250)));
+}
+// wall-clock driven so speeds stay honest even in throttled tabs
+function pump(){
+  if(!live||live.done)return;
+  if(live.paused){live.lastT=performance.now();return;}
+  const per=SPEEDS[state.speed]||140,now=performance.now();
+  let mins=Math.floor((now-live.lastT)/per);
+  if(mins<=0)return;
+  live.lastT+=mins*per;
+  while(mins-->0&&!live.done&&!live.paused)simMinute();
+  if(cur===305)renderMainKeepScroll();
+}
+function refreshUserStr(){
+  const m=live.user;if(!m)return;
+  const home=m.h===state.teamIdx;
+  const ua=teamAtt(state.teamIdx)*live.uAtt,ud=teamDef(state.teamIdx)*live.uDef;
+  if(home){m.hAtt=ua+3;m.hDef=ud+3;}else{m.aAtt=ua;m.aDef=ud;}
+}
+function teamTalk(k){
+  if(!live||!live.awaitTalk)return;
+  let f=1,txt='CALM WORDS AT THE BREAK';
+  if(k===2){f=1.06;txt='FIRED UP FOR THE SECOND HALF';}
+  if(k===3){
+    if(Math.random()<0.55){f=1.15;txt='HAIRDRYER WORKS! THEY FLY OUT';}
+    else{f=0.86;txt='HAIRDRYER BACKFIRES. HEADS DROP';}
+  }
+  live.uAtt*=f;live.uDef*=Math.sqrt(f);
+  refreshUserStr();
+  live.log.push({t:"   "+txt,c:f>1?'g':f<1?'rd':'w'});
+  live.awaitTalk=false;live.paused=false;
+  renderMainKeepScroll();
+}
+function injureRandom(){
+  if(!state.lineup.length)return;
+  const sq=mySquad();
+  const k=rnd(state.lineup.length),li=state.lineup[k],p=sq[li];
+  p.inj=1+rnd(5);
+  state.lineup.splice(k,1);
+  live.log.push({t:padl(live.min,2)+"' "+p.name+" INJURED - OFF ("+p.inj+" MD)",c:'rd'});
+  let sub=-1,best=-1;
+  sq.forEach((q,i)=>{
+    if(!avail(q)||i===li||state.lineup.includes(i))return;
+    if(q.pos===p.pos&&eff(q)>best){best=eff(q);sub=i;}
+  });
+  if(sub<0)sq.forEach((q,i)=>{
+    if(!avail(q)||i===li||state.lineup.includes(i)||q.pos==='GK')return;
+    if(eff(q)>best){best=eff(q);sub=i;}
+  });
+  if(sub>=0){
+    state.lineup.push(sub);
+    live.log.push({t:"   SUB: "+sq[sub].name+" COMES ON",c:'g'});
+  }
+  addNews(p.name+' INJURED - OUT '+p.inj+' MATCHES');
+  refreshUserStr();
+}
+function simMinute(){
+  live.min++;
+  for(const m of live.ms){
+    const pH=0.0128*Math.pow(m.hAtt/m.aDef,1.6);
+    const pA=0.0108*Math.pow(m.aAtt/m.hDef,1.6);
+    if(Math.random()<pH)goal(m,true);
+    else if(Math.random()<pA)goal(m,false);
+  }
+  if(live.user){
+    if(Math.random()<0.0025&&state.lineup.length>7)injureRandom();
+    // red card for one of yours (once per match)
+    if(!live.userRed&&Math.random()<0.0009&&state.lineup.length>8){
+      live.userRed=true;
+      const sq=mySquad(),k=rnd(state.lineup.length),li=state.lineup[k],p=sq[li];
+      p.sus=1+rnd(2);state.lineup.splice(k,1);
+      beep([[196,300]]);
+      live.log.push({t:padl(live.min,2)+"' RED CARD! "+p.name+" ("+p.sus+" MD BAN)",c:'rd'});
+      addNews(p.name+' SEES RED - '+p.sus+' MATCH BAN');
+      live.uAtt*=0.82;live.uDef*=0.90;
+      refreshUserStr();
+    }
+    // red card for the opposition (once per match)
+    if(!live.oppRed&&Math.random()<0.0009){
+      live.oppRed=true;
+      const m=live.user,oppIsHome=m.a===state.teamIdx;
+      if(oppIsHome){m.hAtt*=0.82;m.hDef*=0.90;}else{m.aAtt*=0.82;m.aDef*=0.90;}
+      live.log.push({t:padl(live.min,2)+"' "+TEAMS[oppIsHome?m.h:m.a].c+" DOWN TO 10 MEN!",c:'g'});
+    }
+    if(Math.random()<0.05){
+      const m=live.user,t=Math.random()<0.5?m.h:m.a,p=scorer(t);
+      live.log.push({t:padl(live.min,2)+"' "+pick(FLAVOR).replace('{P}',p.name).replace('{T}',TEAMS[t].c),c:'w'});
+    }
+  }
+  if(live.min===45){
+    live.log.push({t:"-- HALF TIME --",c:'g'});
+    if(live.user){live.paused=true;live.awaitTalk=true;}
+  }
+  if(live.min>=90){
+    clearInterval(live.timer);
+    finishMatch();
+  }
+}
+function finishMatch(){
+  live.done=true;
+  const e=curEntry(),u=live.user;
+  const res=!u?null:
+    u.h===state.teamIdx?(u.hs>u.as?'WIN':u.hs<u.as?'LOSS':'DRAW')
+                       :(u.as>u.hs?'WIN':u.as<u.hs?'LOSS':'DRAW');
+  if(e.t==='L'){
+    const prize=res==='WIN'?3:res==='DRAW'?1:0;
+    const wageCost=Math.round(totalWageBill()/(DIVSIZE[myDiv()]*2-2));
+    state.budget+=prize-wageCost;
+    live.log.push({t:"FULL TIME — "+res+(prize?" (+£"+prize+"M)":""),
+                   c:res==='WIN'?'g':res==='LOSS'?'rd':'y'});
+    if(wageCost>0)live.log.push({t:"WAGES PAID: -£"+wageCost+"M",c:'m'});
+    state.res[myDiv()].push(live.ms.map(m=>({h:m.h,a:m.a,hs:m.hs,as:m.as})));
+    syncOtherDivision();
+    const rivals=divTeams(myDiv());
+    const exp=1+rivals.filter(i=>TEAMS[i].str>TEAMS[state.teamIdx].str).length;
+    let confDelta=(res==='WIN'?4:res==='DRAW'?0:-4)
+      +clamp(Math.round((exp-myPos())/3),-2,2);
+    if(live.derby){
+      confDelta+=res==='WIN'?3:res==='LOSS'?-3:0;
+      live.log.push({t:res==='WIN'?"DERBY DELIGHT!":res==='LOSS'?"DERBY DISASTER":"DERBY DAY STALEMATE",
+        c:res==='WIN'?'y':res==='LOSS'?'rd':'w'});
+      addNews((res==='WIN'?'DERBY DELIGHT':res==='LOSS'?'DERBY DISASTER':'DERBY STALEMATE')+' FOR '+TEAMS[state.teamIdx].n);
+    }
+    state.conf=clamp(state.conf+confDelta,0,100);
+    state.rep=clamp(state.rep+(res==='WIN'?1:res==='LOSS'?-1:0),0,99);
+    // a bigger, struggling club may come calling
+    if(!state.offer&&state.rep>45&&Math.random()<0.10){
+      const tab=table(),pool=divTeams(1).concat(divTeams(2)),cands=[];
+      pool.forEach(i=>{
+        const t=TEAMS[i];
+        if(i===state.teamIdx||t.str<=TEAMS[state.teamIdx].str+2)return;
+        const p=tab.findIndex(r=>r.i===i)+1;if(p<1)return;
+        const texp=1+rivals.filter(q=>TEAMS[q].str>t.str).length;
+        if(p>=texp+4)cands.push(i);
+      });
+      if(cands.length){
+        state.offer={t:pick(cands),exp:state.sp+3};
+        addNews(TEAMS[state.offer.t].n+' WANT YOU AS BOSS! SEE P312');
+      }
+    }
+    const opp=u.h===state.teamIdx?u.a:u.h;
+    const sc=u.h===state.teamIdx?u.hs+'-'+u.as:u.as+'-'+u.hs;
+    addNews(TEAMS[state.teamIdx].c+' '+sc+' '+TEAMS[opp].c+': '
+      +(res==='WIN'?'BOSS DELIGHTED':res==='LOSS'?'FANS GROAN':'HONOURS EVEN'));
+    let big=null,bg=-1;
+    for(const m of live.ms){if(m===u)continue;if(m.hs+m.as>bg){bg=m.hs+m.as;big=m;}}
+    if(big&&bg>=5)addNews('GOALS GALORE: '+TEAMS[big.h].c+' '+big.hs+'-'+big.as+' '+TEAMS[big.a].c);
+  }else if(e.t==='C'){
+    // resolve the cup round — draws go to penalties
+    const c=state.cup,winners=[];
+    for(const m of live.ms){
+      if(m.hs===m.as){
+        m.pw=Math.random()<TEAMS[m.h].str/(TEAMS[m.h].str+TEAMS[m.a].str)?m.h:m.a;
+        winners.push(m.pw);
+      }else winners.push(m.hs>m.as?m.h:m.a);
+    }
+    if(c.bye!==null&&c.bye!==undefined)winners.push(c.bye);
+    c.hist.push({label:cupLabel(),res:live.ms.map(m=>({h:m.h,a:m.a,hs:m.hs,as:m.as,pw:m.pw}))});
+    c.alive=winners;c.ties=null;c.bye=null;c.round++;
+    if(u){
+      const won=winners.includes(state.teamIdx);
+      const pens=u.hs===u.as;
+      if(won){
+        state.budget+=5;state.conf=clamp(state.conf+5,0,100);
+        live.log.push({t:"FULL TIME — THROUGH!"+(pens?" ON PENS!":"")+" (+£5M)",c:'g'});
+        if(c.alive.length>1)addNews(TEAMS[state.teamIdx].n+' INTO THE CUP '+cupLabel());
+      }else{
+        c.out=true;state.conf=clamp(state.conf-3,0,100);
+        live.log.push({t:"FULL TIME — OUT OF THE CUP"+(pens?" ON PENS":""),c:'rd'});
+        addNews('CUP EXIT FOR '+TEAMS[state.teamIdx].n);
+      }
+    }
+    if(c.alive.length===1){
+      c.winner=c.alive[0];
+      if(c.winner===state.teamIdx){
+        state.budget+=20;state.conf=clamp(state.conf+15,0,100);
+        addNews(TEAMS[c.winner].n+' WIN THE TELEBOSS CUP! (+£20M)');
+      }else addNews(TEAMS[c.winner].n+' LIFT THE TELEBOSS CUP');
+    }
+  }else if(e.t==='E'){
+    const eu=state.euro,oppI=(u.h===state.teamIdx?u.a:u.h),oppName=TEAMS[oppI].n;
+    if(e.stage==='LEAGUE'){
+      const pts=res==='WIN'?3:res==='DRAW'?1:0;
+      eu.played.push({opp:oppI,pts});
+      eu.pts+=pts;
+      const money=res==='WIN'?(eu.comp==='UCL'?3:2):res==='DRAW'?1:0;
+      state.budget+=money;
+      live.log.push({t:"FULL TIME — "+res+(money?" (+£"+money+"M)":""),c:res==='WIN'?'g':res==='LOSS'?'rd':'y'});
+      addNews(eu.comp+' '+res+' v '+oppName+' ('+eu.pts+' PTS)');
+      if(eu.played.length>=8){
+        if(eu.pts>=16){
+          eu.stage='QF';eu.direct=true;const fee=eu.comp==='UCL'?10:5;state.budget+=fee;
+          addNews(TEAMS[state.teamIdx].n+' GO STRAIGHT TO THE '+eu.comp+' QUARTER-FINALS (+£'+fee+'M)');
+        }else if(eu.pts>=10){
+          eu.stage='PLAYOFF';
+          addNews(TEAMS[state.teamIdx].n+' INTO THE '+eu.comp+' KNOCKOUT PLAY-OFF');
+        }else{
+          eu.stage='DONE';eu.eliminated=true;eu.result='LEAGUE PHASE';
+          addNews(TEAMS[state.teamIdx].n+' OUT OF EUROPE AT THE LEAGUE PHASE');
+        }
+      }
+    }else{
+      let win;
+      if(u.hs===u.as)win=Math.random()<TEAMS[u.h].str/(TEAMS[u.h].str+TEAMS[u.a].str)?u.h:u.a;
+      else win=u.hs>u.as?u.h:u.a;
+      const userWon=win===state.teamIdx,pens=(u.hs===u.as);
+      const bigWin=eu.comp==='UCL'?6:3,bigFinal=eu.comp==='UCL'?40:20,bigRunnerUp=eu.comp==='UCL'?15:8;
+      eu.koOpp=null;
+      if(userWon){
+        if(e.stage==='FINAL'){
+          state.budget+=bigFinal;state.conf=clamp(state.conf+25,0,100);
+          state.rep=clamp(state.rep+(eu.comp==='UCL'?25:15),0,99);
+          eu.stage='DONE';eu.result='CHAMPION';
+          live.log.push({t:"CHAMPIONS!"+(pens?" ON PENS!":"")+" (+£"+bigFinal+"M)",c:'y'});
+          addNews(TEAMS[state.teamIdx].n+' WIN THE '+(eu.comp==='UCL'?'CHAMPIONS LEAGUE':'EUROPA LEAGUE')+'!');
+        }else{
+          const nextStage=e.stage==='PLAYOFF'?'QF':e.stage==='QF'?'SF':'FINAL';
+          state.budget+=bigWin;state.conf=clamp(state.conf+8,0,100);
+          eu.stage=nextStage;
+          live.log.push({t:"THROUGH!"+(pens?" ON PENS!":"")+" (+£"+bigWin+"M)",c:'g'});
+          addNews(TEAMS[state.teamIdx].n+' REACH THE '+eu.comp+' '+nextStage);
+        }
+      }else{
+        eu.stage='DONE';eu.result=e.stage==='FINAL'?'RUNNER-UP':e.stage;
+        if(e.stage==='FINAL'){state.budget+=bigRunnerUp;state.conf=clamp(state.conf+10,0,100);}
+        live.log.push({t:"OUT OF EUROPE"+(pens?" ON PENS":""),c:'rd'});
+        addNews(TEAMS[state.teamIdx].n+' KNOCKED OUT OF THE '+eu.comp+' ('+e.stage+')');
+      }
+    }
+  }
+  state.sp++;
+  if(state.offer&&state.sp>state.offer.exp){state.offer=null;addNews('JOB OFFER WITHDRAWN');}
+  for(const sq of state.squads)for(const p of sq){
+    p.form=clamp(p.form+rnd(3)-1,-3,3);
+    if(p.inj>0)p.inj--;
+    if(p.sus>0)p.sus--;
+  }
+  aiTransfer();
+  rivalManagerNews();
+  refreshListings();
+  if(state.conf<=0&&!state.sacked){state.sacked=true;addNews(TEAMS[state.teamIdx].n+' SACK MANAGER');}
+  else if(state.conf<=20)addNews('BOARD LOSING PATIENCE AT '+TEAMS[state.teamIdx].c);
+  if(u){
+    const sh=u.hs*2+1+rnd(9),sa=u.as*2+1+rnd(7);
+    const ph=clamp(Math.round(50+(u.hAtt-u.aAtt)*0.8),25,75);
+    live.log.push({t:"SHOTS "+sh+"-"+sa+"  POSSESSION "+ph+"-"+(100-ph),c:'c'});
+    beep([[660,120],[660,120],[660,320]]);
+  }
+  save();
+}
+
+// ---------- rendering ----------
+const DAYS=['SUN','MON','TUE','WED','THU','FRI','SAT'];
+const MONS=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function renderHdr(){
+  const d=new Date();
+  const z=n=>String(n).padStart(2,'0');
+  const t=DAYS[d.getDay()]+' '+z(d.getDate())+' '+MONS[d.getMonth()]+' '
+         +z(d.getHours())+':'+z(d.getMinutes())+'/'+z(d.getSeconds());
+  const pstr=kbuf?('P'+kbuf.padEnd(3,'.')):('P'+cur);
+  $('hdr').innerHTML=sp(pad(pstr,5),'w')+sp(pad('TELEBOSS',12),'g')+sp(padl(t,24),'y');
+}
+function renderFtx(){
+  const ft=(t,cl,p)=>`<span class="lnk ${cl}" onclick="go(${p})">${pad(t,10)}</span>`;
+  $('ftx').innerHTML=ft('INDEX','rd',300)+ft('SQUAD','g',301)+ft('TABLE','y',304)+ft('LIVE','c',305);
+}
+function go(p){
+  cur=p;pend=null;msg='';
+  if(p!==315){marketClub=null;scoutDiv=null;}
+  if(p===303&&state)viewMD=Math.min(state.res[myDiv()].length,state.fx[myDiv()].length-1);
+  if(p===304)tableDiv=null;
+  render();
+}
+function render(){renderHdr();renderMain();renderFtx();}
+
+function banner(txt,cl){return DH(sp(' '+pad(txt,38)+' ',cl));}
+
+// re-renders the match log without yanking the user's scroll position around —
+// stays pinned to the bottom if they were already there, otherwise holds position
+function renderMainKeepScroll(){
+  const el=$('matchlog');
+  let scrollTop=0,atBottom=true;
+  if(el){scrollTop=el.scrollTop;atBottom=(el.scrollHeight-el.clientHeight-el.scrollTop)<24;}
+  renderMain();
+  const el2=$('matchlog');
+  if(el2)el2.scrollTop=atBottom?el2.scrollHeight:scrollTop;
+}
+function renderMain(){
+  if(!state){$('main').innerHTML=pageSelect();return;}
+  if(state.sacked&&!live){$('main').innerHTML=pageSacked();return;}
+  let h;
+  switch(cur){
+    case 300:h=pageMenu();break;
+    case 301:h=pageSquad();break;
+    case 302:h=pageTactics();break;
+    case 303:h=pageFixtures();break;
+    case 304:h=pageTable();break;
+    case 305:h=pageLive();break;
+    case 306:h=pageScorers();break;
+    case 307:h=pageBuy();break;
+    case 308:h=pageSell();break;
+    case 309:h=pageNewGame();break;
+    case 310:h=pageCup();break;
+    case 311:h=pageNews();break;
+    case 312:h=pageJob();break;
+    case 313:h=pageHonours();break;
+    case 314:h=pageEurope();break;
+    case 315:h=pageScout();break;
+    case 316:h=pageSaveGame();break;
+    case 317:h=pageClassifieds();break;
+    default:h=BLANK+banner('PAGE NOT IN USE','bw')+BLANK
+      +L(sp('  THIS PAGE IS CURRENTLY NOT IN USE','w'))
+      +L(sp('  PLEASE SELECT PAGES 300-317','c'))+BLANK
+      +L(sp('  ','w')+sp('<span class="lnk by" onclick="go(300)"> INDEX 300 </span>','w'));
+  }
+  $('main').innerHTML=h;
+}
+
+function toggleSelDiv(){selDiv=selDiv===1?2:1;render();}
+function pageSelect(){
+  let h=BLANK+banner('TELEBOSS','by')
+    +L(sp(' ENGLISH FOOTBALL 2025/26','c'))
+    +L(sp(' A TELETEXT FOOTBALL MANAGEMENT GAME','w'))+BLANK
+    +L(sp(' CHOOSE YOUR CLUB:','y')
+      +`<span class="lnk byy" onclick="toggleSelDiv()"> ${DIVNAME[selDiv]} </span>`)+BLANK;
+  const from=selDiv===1?0:DIV1_SIZE,to=selDiv===1?DIV1_SIZE:DIV2_SIZE;
+  for(let i=from;i<to;i++){
+    const t=TEAMS[i],bars=Math.round((t.str-42)/6);
+    h+=L(`<span class="lnk" onclick="newGame(${i})">`
+      +sp('  '+padName(t.n,17),'w')+sp(pad(t.c,5),'c')
+      +sp('█'.repeat(Math.max(1,bars)),'g')+'</span>');
+  }
+  h+=BLANK+L(sp(' CLICK THE '+DIVNAME[selDiv]+' BUTTON TO SWITCH','m'));
+  return h;
+}
+
+function pageMenu(){
+  const t=TEAMS[state.teamIdx],e=curEntry(),div=myDiv(),total=DIVSIZE[div]*2-2;
+  const [mood,moodCl]=boardMood();
+  let h=BLANK+banner(t.n,'by')+BLANK;
+  if(e){
+    h+=L(sp(' '+DIVNAME[div]+'  SEASON '+state.season,'c'));
+    h+=L(sp(' MATCHDAY '+(state.res[div].length+1)+' OF '+total,'w'));
+    h+=L(sp(' POSITION: ','w')+sp(padl(myPos(),2),'y')
+       +sp('   POINTS: ','w')+sp(padl(table().find(r=>r.i===state.teamIdx).pts,3),'y'));
+    if(state.target)h+=L(sp(' TARGET: ','w')+sp(state.target.label,'m'));
+    if(e.t==='L'){
+      const fx=state.fx[div][e.md].find(([a,b])=>a===state.teamIdx||b===state.teamIdx);
+      const home=fx[0]===state.teamIdx,opp=home?fx[1]:fx[0];
+      h+=L(sp(' NEXT: ','w')+sp(TEAMS[opp].n+(home?' (H)':' (A)'),'c'));
+    }else if(e.t==='C'){
+      h+=L(sp(' NEXT: ','w')+sp('TELEBOSS CUP '+cupLabel(),'c'));
+    }else{
+      h+=L(sp(' NEXT: ','w')+sp(state.euro.comp+' '+(e.stage==='LEAGUE'?'MATCH '+(state.euro.played.length+1)+'/8':e.stage),'m'));
+    }
+    h+=L(sp(' BANK: ','w')+sp('£'+state.budget+'M','g')
+       +sp('   BOARD: ','w')+sp(mood,moodCl));
+    if(state.euro)h+=L(sp(' '+state.euro.comp+': ','w')
+      +sp(state.euro.stage==='LEAGUE'?state.euro.pts+' PTS FROM '+state.euro.played.length+' GAMES':state.euro.stage,'m'));
+  }else{
+    h+=L(sp(' SEASON '+state.season+' COMPLETE!','y'));
+    h+=L(sp(' FINAL POSITION: '+myPos(),'c'));
+  }
+  h+=BLANK;
+  const item=(txt,p)=>L(`<span class="lnk" onclick="go(${p})">`
+    +sp('  '+txt,'w')+sp('.'.repeat(Math.max(1,26-txt.length)),'bl')+sp(String(p),'y')+'</span>');
+  h+=L(sp(' INDEX','g'));
+  h+=item('SQUAD + PICK TEAM',301);
+  h+=item('TACTICS',302);
+  h+=item('FIXTURES + RESULTS',303);
+  h+=item('LEAGUE TABLE',304);
+  h+=item('MATCHDAY LIVE',305);
+  h+=item('TOP SCORERS',306);
+  h+=item('TRANSFERS: BUY',307);
+  h+=item('TRANSFERS: SELL',308);
+  h+=item('SCOUT CLUBS',315);
+  h+=item('TELEBOSS CUP',310);
+  h+=item('EUROPE',314);
+  h+=item('NEWS',311);
+  h+=item('JOB CENTRE',312);
+  h+=item('HONOURS BOARD',313);
+  h+=item('CLASSIFIEDS',317);
+  h+=item('SAVE GAME',316);
+  h+=item('NEW GAME',309);
+  if(state.offer)h+=L(sp(' ** JOB OFFER WAITING — PAGE 312 **','m'));
+  else h+=L(sp(' '+pick(ADS),'m'));
+  return h;
+}
+
+function pageSquad(){
+  const sq=mySquad(),selN=state.lineup.length;
+  let h=banner('SQUAD — '+TEAMS[state.teamIdx].n,'by');
+  h+=L(sp(' CLICK PLAYER TO PICK/DROP','c')
+     +sp('  XI: ','w')+sp(selN+'/11',selN===11?'g':'y'));
+  const [fd,fm,ff]=FORMS[state.formation]||FORMS['442'];
+  h+=L(sp(lineupOK()?' TEAM VALID ('+state.formation+')'
+        :' NEED ('+state.formation+'): 1GK '+fd+'DF '+fm+'MF '+ff+'FW',
+          lineupOK()?'g':'y'));
+  h+=L(sp('    NAME          POS RAT FRM AGE GLS','c'));
+  const order=['GK','DF','MF','FW'];
+  order.forEach(pos=>{
+    sq.forEach((p,i)=>{
+      if(p.pos!==pos)return;
+      const sel=state.lineup.includes(i);
+      const frm=p.inj?'I'+p.inj:p.sus?'S'+p.sus:(p.form>0?'+'+p.form:String(p.form));
+      h+=L(`<span class="lnk" onclick="tgl(${i})">`
+        +sp(sel?' ■ ':'   ',sel?'g':'w')
+        +sp(padName(p.name,14),p.inj?'rd':p.sus?'m':sel?'w':'bl')
+        +sp(pad(p.pos,4),'c')
+        +sp(padl(p.rat,3)+' ','w')
+        +sp(padl(frm,3)+' ',p.inj?'rd':p.sus?'m':p.form>0?'g':p.form<0?'rd':'w')
+        +sp(padl(p.age,3)+' ','c')
+        +sp(padl(p.goals,3),'y')+'</span>');
+    });
+  });
+  h+=L(sp(' ','w')+`<span class="lnk by" onclick="autoPick();save();render()"> AUTO-PICK BEST XI </span>`);
+  const expiring=sq.map((p,i)=>({p,i})).filter(x=>x.p.contract<=1);
+  if(expiring.length){
+    h+=BLANK+L(sp(' CONTRACTS EXPIRING — WAGE £'+totalWageBill()+'M/SEASON','y'));
+    expiring.forEach(({p,i})=>{
+      h+=L(sp('  '+padName(p.name,15)+(p.contract<=0?'FREE THIS SUMMER':p.contract+' YR LEFT'),'m')
+        +`<span class="lnk bgr" onclick="renewContract(${i})"> RENEW £${Math.max(1,Math.round(val(p)*0.1))}M </span>`);
+    });
+  }else{
+    h+=BLANK+L(sp(' WAGE BILL: £'+totalWageBill()+'M/SEASON','m'));
+  }
+  return h;
+}
+
+function pageTactics(){
+  const opt=(k,label,desc)=>{
+    const on=state.tactic===k;
+    return L(`<span class="lnk" onclick="setTac('${k}')">`
+      +sp(on?' ► ':'   ',on?'y':'w')
+      +sp(pad(label,12),on?'y':'w')+sp(desc,'c')+'</span>');
+  };
+  const fbtn=Object.keys(FORMS).map(k=>
+    `<span class="lnk ${state.formation===k?'byy':'c'}" onclick="setForm('${k}')"> ${k} </span>`
+  ).join(' ');
+  return BLANK+banner('TACTICS','by')+BLANK
+    +L(sp(' SELECT YOUR APPROACH:','w'))+BLANK
+    +opt('DEF','DEFENSIVE','SHUT UP SHOP. +DEF -ATT')
+    +opt('BAL','BALANCED','KEEP IT TIDY. NO CHANGE')
+    +opt('ATT','ATTACKING','ALL OUT! +ATT -DEF')
+    +BLANK
+    +L(sp(' FORMATION (RE-PICKS BEST XI):','w'))
+    +L(' '+fbtn)
+    +BLANK
+    +L(sp(' CURRENT: ','w')+sp(state.tactic+'  '+state.formation,'g'))
+    +BLANK+L(sp(' THE GAFFER KNOWS BEST','m'));
+}
+
+function pageFixtures(){
+  const div=myDiv(),total=state.fx[div].length;
+  viewMD=clamp(viewMD,0,total-1);
+  const played=viewMD<state.res[div].length;
+  let h=banner(DIVNAME[div]+' FIXTURES','by');
+  h+=L(`<span class="lnk y" onclick="viewMD--;render()">${pad(' << PREV',10)}</span>`
+    +sp(pad('MATCHDAY '+(viewMD+1)+'/'+total,20),'w')
+    +`<span class="lnk y" onclick="viewMD++;render()">${padl('NEXT >> ',10)}</span>`);
+  h+=BLANK;
+  const round=played?state.res[div][viewMD]:state.fx[div][viewMD].map(([hh,aa])=>({h:hh,a:aa}));
+  round.forEach(m=>{
+    const mine=m.h===state.teamIdx||m.a===state.teamIdx;
+    const cl=mine?'y':'w';
+    if(played)
+      h+=L(sp(' '+padName(TEAMS[m.h].n,15),cl)+sp(padl(m.hs,2)+'-'+pad(m.as,2),'c')
+         +sp(' '+padName(TEAMS[m.a].n,15),cl));
+    else
+      h+=L(sp(' '+padName(TEAMS[m.h].n,15),cl)+sp(' v   ','c')+sp(padName(TEAMS[m.a].n,15),cl));
+  });
+  h+=BLANK+L(sp(played?' RESULTS':' UPCOMING','g'));
+  return h;
+}
+
+function pageTable(){
+  const div=tableDiv||myDiv(),sz=DIVSIZE[div];
+  let h=banner(DIVNAME[div]+' TABLE','by');
+  h+=L(`<span class="lnk byy" onclick="tableDiv=${div===1?2:1};render()"> VIEW ${DIVNAME[div===1?2:1]} </span>`);
+  h+=L(sp('  # TEAM          P  W  D  L   F   A PTS','c'));
+  table(div).forEach((r,k)=>{
+    const posCl=div===1?(k===0?'y':k<4?'g':k>=sz-3?'rd':'w'):(k<2?'g':k<6?'c':k>=sz-3?'rd':'w');
+    const rowCl=r.i===state.teamIdx?'y':'w';
+    h+=L(sp(padl(k+1,3)+' ',posCl)
+      +sp(padName(TEAMS[r.i].n,13),rowCl)
+      +sp(padl(r.p,2)+padl(r.w,3)+padl(r.d,3)+padl(r.l,3)+padl(r.f,4)+padl(r.a,4)+padl(r.pts,4),rowCl));
+  });
+  h+=div===1?L(sp('  TOP4 EUROPE ','g')+sp(' BOTTOM 3 RELEGATED','rd'))
+            :L(sp('  TOP2 UP ','g')+sp(' 3-6 PLAY-OFFS ','c')+sp(' BOTTOM3 DOWN','rd'));
+  return h;
+}
+
+function pageScorers(){
+  const all=[];
+  state.squads.forEach((sq,t)=>sq.forEach(p=>{if(p.goals>0)all.push({p,t});}));
+  all.sort((a,b)=>b.p.goals-a.p.goals);
+  let h=banner('GOLDEN BOOT','by')+BLANK
+    +L(sp('  # PLAYER         CLUB  GLS','c'));
+  if(!all.length)h+=BLANK+L(sp('  NO GOALS SCORED YET','w'));
+  all.slice(0,15).forEach((e,k)=>{
+    const mine=e.t===state.teamIdx;
+    h+=L(sp(padl(k+1,3)+' ','c')+sp(padName(e.p.name,15),mine?'y':'w')
+      +sp(pad(TEAMS[e.t].c,6),'c')+sp(padl(e.p.goals,3),'y'));
+  });
+  return h;
+}
+
+function pageLive(){
+  const e=curEntry(),div=myDiv();
+  // season over
+  if(!live&&!e){
+    const tab=table(),champ=TEAMS[tab[0].i],pos=myPos(),cw=state.cup.winner,sz=DIVSIZE[div];
+    let h=BLANK+banner('SEASON '+state.season+' FINAL','by')+BLANK
+      +L(sp(' '+DIVNAME[div]+' CHAMPIONS: ','w')+sp(champ.n,'y'))
+      +L(sp(' CUP WINNERS: ','w')+sp(cw!==null?TEAMS[cw].n:'-','c'))
+      +L(sp(' YOU FINISHED: ','w')+sp(ordinal(pos),pos<=4?'g':pos>=sz-2?'rd':'c'))+BLANK;
+    if(pos===1)h+=L(sp(' GLORY! THE TITLE IS YOURS!','y'));
+    else if(div===1&&pos<=4)h+=L(sp(' CHAMPIONS LEAGUE FOOTBALL SECURED','g'));
+    else if(div===1&&pos===5)h+=L(sp(' EUROPA LEAGUE FOOTBALL SECURED','g'));
+    else if(pos>=sz-2)h+=L(sp(' RELEGATED. THE BOARD IS FURIOUS.','rd'));
+    else if(div===2&&pos<=6)h+=L(sp(' PLAY-OFF PLACE — PROMOTION CHANCE!','g'));
+    else h+=L(sp(' A SOLID MID-TABLE CAMPAIGN','c'));
+    if(cw===state.teamIdx)h+=L(sp(' AND YOU WON THE TELEBOSS CUP!','y'));
+    if(state.euro)h+=L(sp(' '+state.euro.comp+': ','w')+sp(state.euro.result||state.euro.stage,'m'));
+    h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="newSeason()"> START SEASON ${state.season+1} </span>`);
+    return h;
+  }
+  // pre-match
+  if(!live){
+    const nOut=mySquad().filter(p=>p.inj||p.sus).length;
+    if(e.t==='L'){
+      const fx=state.fx[div][e.md].find(([a,b])=>a===state.teamIdx||b===state.teamIdx);
+      const home=fx[0]===state.teamIdx,opp=home?fx[1]:fx[0];
+      const oppPos=table().findIndex(r=>r.i===opp)+1;
+      const derbyUp=isDerby(fx[0],fx[1]);
+      return BLANK+banner(derbyUp?'DERBY DAY!':'MATCHDAY '+(state.res[div].length+1),derbyUp?'brd':'by')+BLANK
+        +DH(sp(' '+TEAMS[fx[0]].c+'  v  '+TEAMS[fx[1]].c+' ','w'))
+        +L(sp(' '+padName(TEAMS[fx[0]].n,18),'c')+sp(padName(TEAMS[fx[1]].n,18),'c'))+BLANK
+        +L(sp(' VENUE: ','w')+sp(home?'HOME':'AWAY',home?'g':'y')
+          +sp('   OPPONENT POS: ','w')+sp(String(oppPos),'c'))
+        +L(sp(' TACTIC: ','w')+sp(state.tactic,'g')
+          +sp('   XI: ','w')+sp(lineupOK()?'READY':'AUTO-PICK AT KO',lineupOK()?'g':'y'))
+        +L(sp(' UNAVAILABLE: ','w')+sp(String(nOut),nOut?'rd':'g'))
+        +speedRow()
+        +BLANK
+        +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> ██ KICK OFF ██ </span>`)
+        +BLANK+L(sp(' ALL '+(DIVSIZE[div]/2)+' GAMES PLAY SIMULTANEOUSLY','m'));
+    }
+    if(e.t==='E'){
+      const eu=state.euro;
+      let opp,home;
+      if(e.stage==='LEAGUE'){opp=eu.opponents[eu.played.length];home=eu.played.length%2===0;}
+      else{drawEuroKO();opp=eu.koOpp;home=eu.koHome;}
+      const compName=eu.comp==='UCL'?'CHAMPIONS LEAGUE':'EUROPA LEAGUE';
+      return BLANK+banner(compName,'m')+BLANK
+        +L(sp(' '+(e.stage==='LEAGUE'?'LEAGUE PHASE MATCH '+(eu.played.length+1)+'/8':e.stage),'y'))
+        +DH(sp(' '+TEAMS[state.teamIdx].c+'  v  '+TEAMS[opp].c+' ','w'))
+        +L(sp(' '+padName(TEAMS[state.teamIdx].n,18),'c')+sp(padName(TEAMS[opp].n,18),'c'))+BLANK
+        +L(sp(' VENUE: ','w')+sp(home?'HOME':'AWAY',home?'g':'y')
+          +sp('   '+(e.stage==='LEAGUE'?'PTS: '+eu.pts:'DRAW = PENALTIES'),'c'))
+        +L(sp(' TACTIC: ','w')+sp(state.tactic,'g')
+          +sp('   UNAVAILABLE: ','w')+sp(String(nOut),nOut?'rd':'g'))
+        +speedRow()+BLANK
+        +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> ██ KICK OFF ██ </span>`)
+        +BLANK+L(sp(' CONTINENTAL FOOTBALL AT ITS FINEST','m'));
+    }
+    // cup pre-match
+    drawCup();
+    const tie=state.cup.ties.find(t=>t.h===state.teamIdx||t.a===state.teamIdx);
+    if(!tie){
+      const inHat=state.cup.alive.includes(state.teamIdx);
+      return BLANK+banner('TELEBOSS CUP','by')+BLANK
+        +L(sp(' '+cupLabel(),'y'))
+        +L(sp(inHat?' YOU HAVE A BYE THIS ROUND':' YOU ARE OUT OF THE CUP',inHat?'g':'rd'))
+        +BLANK
+        +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> PLAY ROUND (INSTANT) </span>`)
+        +BLANK+L(sp(' FULL DRAW ON PAGE 310','m'));
+    }
+    const home=tie.h===state.teamIdx;
+    return BLANK+banner('CUP: '+cupLabel(),'by')+BLANK
+      +DH(sp(' '+TEAMS[tie.h].c+'  v  '+TEAMS[tie.a].c+' ','w'))
+      +L(sp(' '+padName(TEAMS[tie.h].n,18),'c')+sp(padName(TEAMS[tie.a].n,18),'c'))+BLANK
+      +L(sp(' VENUE: ','w')+sp(home?'HOME':'AWAY',home?'g':'y')
+        +sp('   DRAW = PENALTIES','y'))
+      +L(sp(' TACTIC: ','w')+sp(state.tactic,'g')
+        +sp('   UNAVAILABLE: ','w')+sp(String(nOut),nOut?'rd':'g'))
+      +speedRow()+BLANK
+      +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> ██ KICK OFF ██ </span>`)
+      +BLANK+L(sp(' WIN OR GO HOME','m'));
+  }
+  // live / full-time
+  const u=live.user;
+  let h=L(sp(' '+live.title,'w')
+    +sp(padl(live.done?'FULL TIME':(live.paused?'HALF TIME':'LIVE '+live.min+' MIN'),22),live.done?'g':'y'));
+  if(!live.done)h+=speedRow();
+  if(!live.done&&u&&!live.awaitTalk)h+=tacRow();
+  if(u)h+=DH(sp(' '+TEAMS[u.h].c+padl(u.hs,3)+' - '+u.as+'  '+TEAMS[u.a].c+' ','y'));
+  else h+=DH(sp(' CUP RESULTS ','y'));
+  if(live.awaitTalk){
+    h+=L(sp(' HALF TIME — PICK YOUR TEAM TALK:','y'));
+    h+=L(' <span class="lnk bcy" onclick="teamTalk(1)"> CALM </span> '
+       +'<span class="lnk byy" onclick="teamTalk(2)"> FIRE UP </span> '
+       +'<span class="lnk brd" onclick="teamTalk(3)"> HAIRDRYER </span>');
+  }
+  const logH=live.awaitTalk?'7.2em':'9.6em';
+  h+='<div id="matchlog" style="height:'+logH+';overflow-y:auto">';
+  live.log.forEach(ev=>{h+=L(sp(' '+ev.t,ev.c));});
+  h+='</div>';
+  if(live.ms.length>1){
+    h+=L(sp(' AROUND THE GROUNDS','c'));
+    const f=m=>pad(TEAMS[m.h].c,4)+padl(m.hs,2)+'-'+pad(String(m.as)+(m.pw!==undefined?'p':''),3)+pad(TEAMS[m.a].c,4);
+    for(let i=0;i<live.ms.length;i+=2)
+      h+=L(sp(' '+f(live.ms[i])+' '+(live.ms[i+1]?f(live.ms[i+1]):''),'w'));
+  }
+  if(live.done)
+    h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="live=null;go(${live.cup?310:live.euro?314:304})"> CONTINUE </span>`);
+  return h;
+}
+
+function speedRow(){
+  const b=['x1','x2','x4','x8'].map(k=>
+    `<span class="lnk ${state.speed===k?'byy':'c'}" onclick="setSpeed('${k}')"> ${k.toUpperCase()} </span>`
+  ).join(' ');
+  const snd=`<span class="lnk ${state.snd?'bgr':'brd'}" onclick="tglSnd()"> SND </span>`;
+  return L(sp(' SPEED: ','w')+b+'  '+snd);
+}
+function tacRow(){
+  const b=['DEF','BAL','ATT'].map(k=>
+    `<span class="lnk ${state.tactic===k?'byy':'c'}" onclick="liveTac('${k}')"> ${k} </span>`
+  ).join(' ');
+  return L(sp(' TACTIC: ','w')+b);
+}
+
+function pageWindowClosed(title){
+  const w=windowInfo();
+  const next=w.md<w.janStart
+    ?'REOPENS AT MATCHDAY '+(w.janStart+1)+' (JANUARY WINDOW)'
+    :'REOPENS NEXT PRE-SEASON';
+  return BLANK+banner(title,'brd')+BLANK
+    +L(sp(' THE TRANSFER WINDOW IS CLOSED','rd'))+BLANK
+    +L(sp(' '+next,'c'))+BLANK
+    +L(sp(' NO BUYING OR SELLING UNTIL THEN','m'));
+}
+function pageBuy(){
+  if(!windowOpen())return pageWindowClosed('TRANSFER MARKET');
+  let h=banner('TRANSFER MARKET','by');
+  h+=L(sp(' BANK: ','w')+sp('£'+state.budget+'M','g')
+    +sp('   SQUAD: ','w')+sp(mySquad().length+'/20','c'));
+  h+=L(sp(msg?' '+msg:' TRANSFER LISTED — DISCOUNTED, KEEN TO MOVE',msg?'y':'c'));
+  h+=L(sp('   NAME      POS RAT WILL CLB    £M','c'));
+  const listed=allListedPlayers();
+  if(!listed.length)h+=L(sp('  NONE LISTED RIGHT NOW - CHECK NEXT MATCHDAY','w'));
+  listed.forEach(({t,idx,p})=>{
+    const cost=askingPrice(t,p);
+    const key='a'+t+':'+idx;
+    const sel=pend===key;
+    const marker=(sel?'►':'L')+' ';
+    const will=Math.round(effectiveWillingness(p,t)*100);
+    const willCl=will>=70?'g':will>=40?'y':'rd';
+    h+=L(`<span class="lnk" onclick="approachPlayer(${t},${idx})">`
+      +sp(marker,sel?'y':'m')
+      +sp(padName(p.name,11),sel?'y':'m')
+      +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+      +sp(padl(will+'%',5),willCl)
+      +sp(' '+pad(TEAMS[t].c,4),'c')
+      +sp(padl(sel?'OFFER?':cost,6),sel?'g':'m')+'</span>');
+  });
+  if(state.freeAgents.length){
+    h+=BLANK+L(sp(' FREE AGENTS — NO FEE, CLICK TO SIGN:','y'));
+    state.freeAgents.forEach((p,idx)=>{
+      h+=L(`<span class="lnk" onclick="signFreeAgent(${idx})">`
+        +sp('  '+padName(p.name,13),'w')+sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+        +sp(padl(p.age,4)+' ','c')+sp('FREE','g')+'</span>');
+    });
+  }
+  h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="go(315)"> SCOUT CLUBS — PAGE 315 </span>`);
+  h+=BLANK+L(sp(' SELL PLAYERS ON PAGE 308','m'));
+  return h;
+}
+function pageScout(){
+  if(!windowOpen())return pageWindowClosed('SCOUT CLUBS');
+  if(marketClub!=null)return pageScoutClub();
+  const div=scoutDiv||myDiv();
+  let h=banner('SCOUT: '+DIVNAME[div],'by')+BLANK;
+  h+=L(`<span class="lnk byy" onclick="scoutDiv=${div===1?2:1};render()"> VIEW ${DIVNAME[div===1?2:1]} </span>`);
+  h+=L(sp(' CLICK A CLUB TO VIEW THEIR SQUAD:','c'));
+  const pool=divTeams(div).filter(i=>i!==state.teamIdx)
+    .sort((a,b)=>TEAMS[b].str-TEAMS[a].str);
+  pool.forEach(i=>{
+    h+=L(`<span class="lnk" onclick="viewClub(${i})">`+sp('  '+TEAMS[i].n,'w')+'</span>');
+  });
+  h+=BLANK+L(sp(' TRANSFER LISTED PLAYERS ON PAGE 307','m'));
+  return h;
+}
+function pageScoutClub(){
+  const t=marketClub,sq=state.squads[t];
+  let h=banner('SCOUT: '+TEAMS[t].n,'by');
+  h+=L(`<span class="lnk y" onclick="backToClubs()">${pad(' << ALL CLUBS',16)}</span>`
+    +sp(padl(DIVNAME[state.div[t]],24),'c'));
+  h+=L(sp(msg?' '+msg:' CLICK ONCE TO APPROACH, AGAIN TO OFFER',msg?'y':'c'));
+  h+=L(sp('   NAME      POS RAT WILL     £M','c'));
+  sq.forEach((p,idx)=>{
+    const cost=askingPrice(t,p);
+    const key='a'+t+':'+idx;
+    const sel=pend===key;
+    const rk=t+':'+p.name;
+    const blocked=state.rejected&&state.rejected[rk]&&state.sp<state.rejected[rk];
+    const marker=(sel?'►':(p.listed?'L':' '))+' ';
+    const nameCl=blocked?'rd':sel?'y':p.listed?'m':'w';
+    const will=Math.round(effectiveWillingness(p,t)*100);
+    const willCl=will>=70?'g':will>=40?'y':'rd';
+    h+=L(`<span class="lnk" onclick="approachPlayer(${t},${idx})">`
+      +sp(marker,sel?'y':blocked?'rd':(p.listed?'m':'w'))
+      +sp(padName(p.name,11),nameCl)
+      +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+      +sp(padl(will+'%',5),willCl)
+      +sp(padl(sel?'OFFER?':(blocked?'NO':cost),8),sel?'g':blocked?'rd':p.listed?'m':'y')+'</span>');
+  });
+  return h;
+}
+
+function pageSell(){
+  if(!windowOpen())return pageWindowClosed('SELL PLAYERS');
+  const sq=mySquad();
+  let h=banner('SELL PLAYERS','by');
+  h+=L(sp(' BANK: ','w')+sp('£'+state.budget+'M','g')
+    +sp('  FEE: FAIR VALUE','c'));
+  h+=L(sp(msg?' '+msg:' CLICK ONCE TO PICK, AGAIN TO SELL',msg?'y':'c'));
+  h+=L(sp('   NAME        POS RAT AGE OUT   £M','c'));
+  sq.forEach((p,i)=>{
+    const fee=sellPrice(p);
+    const capped=p.boughtFor!=null&&state.sp-p.boughtSp<8&&fee>=p.boughtFor;
+    const sel=pend==='s'+i;
+    h+=L(`<span class="lnk" onclick="sell(${i})">`
+      +sp(sel?' ►':'  ','y')
+      +sp(padName(p.name,13),sel?'y':p.inj?'rd':'w')
+      +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+      +sp(padl(p.age,4),'c')
+      +sp(padl(p.inj?'I'+p.inj:p.sus?'S'+p.sus:'-',4),p.inj?'rd':p.sus?'m':'g')
+      +sp(padl(sel?'SELL?':fee,6),sel?'g':'y')+'</span>');
+    if(capped)h+=L(sp('      (JUST BOUGHT - NO PROFIT YET)','m'));
+  });
+  return h;
+}
+
+function pageCup(){
+  const c=state.cup,e=curEntry();
+  let h=banner('TELEBOSS CUP','by')+BLANK;
+  const st=c.winner!==null
+    ?(c.winner===state.teamIdx?'YOU ARE CUP CHAMPIONS!':TEAMS[c.winner].n+' WON THE CUP')
+    :c.out?'KNOCKED OUT':'STILL IN THE HAT';
+  h+=L(sp(' STATUS: ','w')+sp(st,c.out?'rd':c.winner===state.teamIdx?'y':'g'));
+  if(e&&e.t==='C'){
+    drawCup();
+    h+=BLANK+L(sp(' THE DRAW — '+cupLabel(),'y'));
+    c.ties.forEach(t=>{
+      const mine=t.h===state.teamIdx||t.a===state.teamIdx;
+      h+=L(sp('  '+padName(TEAMS[t.h].n,16)+' v '+padName(TEAMS[t.a].n,16),mine?'y':'w'));
+    });
+    if(c.bye!==null&&c.bye!==undefined)
+      h+=L(sp('  BYE: '+TEAMS[c.bye].n,c.bye===state.teamIdx?'y':'c'));
+    h+=BLANK+L(sp(' PLAY IT ON PAGE 305','m'));
+  }else if(c.winner===null){
+    h+=L(sp(' NEXT ROUND AFTER MORE LEAGUE GAMES','c'));
+  }
+  const last=c.hist[c.hist.length-1];
+  if(last){
+    h+=BLANK+L(sp(' LAST ROUND — '+last.label,'c'));
+    last.res.forEach(m=>{
+      const mine=m.h===state.teamIdx||m.a===state.teamIdx;
+      h+=L(sp('  '+pad(TEAMS[m.h].c,4)+m.hs+'-'+m.as+' '+pad(TEAMS[m.a].c,5)
+        +(m.pw!==undefined?'*'+TEAMS[m.pw].c+' PENS':''),mine?'y':'w'));
+    });
+  }
+  return h;
+}
+
+function pageNews(){
+  let h=banner('TELEBOSS NEWS','by')+BLANK;
+  if(!state.news.length)h+=L(sp(' NO NEWS IS GOOD NEWS','w'));
+  state.news.forEach((s,k)=>{h+=L(sp(' '+pad(s,39),k%2?'c':'w'));});
+  h+=BLANK+L(sp(' '+pick(ADS),'m'));
+  h+=L(sp(' ALL CLASSIFIEDS: PAGE 317','m'));
+  return h;
+}
+
+function pageJob(){
+  let h=banner('JOB CENTRE','by')+BLANK;
+  h+=L(sp(' REPUTATION: ','w')+sp(state.rep+'/99',state.rep>60?'g':'c'));
+  const o=state.offer;
+  if(o){
+    const pos=table(state.div[o.t]).findIndex(r=>r.i===o.t)+1;
+    h+=BLANK+L(sp(' OFFER FROM: ','w')+sp(TEAMS[o.t].n+' ('+DIVNAME[state.div[o.t]]+')','y'))
+      +L(sp(' THEIR POSITION: '+ordinal(pos),'c'))
+      +L(sp(' TRANSFER KITTY: ','w')
+        +sp('£'+(clubBudget(o.t)+state.rep)+'M','g'))
+      +BLANK
+      +L(' <span class="lnk bgr" onclick="acceptJob()"> ACCEPT JOB </span> '
+        +'<span class="lnk brd" onclick="rejectJob()"> STAY LOYAL </span>')
+      +BLANK+L(sp(' OFFERS EXPIRE FAST. DECIDE NOW.','m'));
+  }else{
+    h+=BLANK+L(sp(' NO OFFERS ON THE TABLE.','w'))
+      +L(sp(' WIN MATCHES. GET NOTICED.','c'))
+      +BLANK+L(sp(' BIG CLUBS POACH IN-FORM BOSSES','m'));
+  }
+  return h;
+}
+
+function pageHonours(){
+  let h=banner('HONOURS BOARD','by')+BLANK;
+  h+=L(sp(' S DIV CLUB POS  CUP EUROPE','c'));
+  if(!state.honours.length)h+=L(sp(' YOUR STORY STARTS HERE...','w'));
+  state.honours.forEach(x=>{
+    h+=L(sp(padl(x.s,2)+' ','w')+sp(pad(x.div===1?'PL':'CH',4),'c')
+      +sp(pad(x.team,5),'y')
+      +sp(pad(ordinal(x.pos),5),x.pos===1?'y':'w')
+      +sp(pad(x.cup,5),x.cup==='WON'?'y':'w')
+      +sp(x.euro&&x.euro!=='-'?x.euro:'','m'));
+  });
+  const tr=state.honours.filter(x=>x.pos===1).length
+          +state.honours.filter(x=>x.cup==='WON').length
+          +state.honours.filter(x=>x.euro&&x.euro.includes('CHAMPION')).length;
+  h+=BLANK+L(sp(' TROPHIES WON: '+tr,tr?'y':'w'));
+  const lastH=state.honours[state.honours.length-1];
+  if(lastH&&lastH.gb)h+=L(sp(' LAST GOLDEN BOOT: '+lastH.gb,'c'));
+  if(state.tots&&state.tots.length){
+    h+=BLANK+L(sp(' TEAM OF THE SEASON:','g'));
+    state.tots.forEach(p=>h+=L(sp('  '+padName(p.name,15)+pad(p.pos,4)+p.club,'w')));
+  }
+  return h;
+}
+
+function pageEurope(){
+  const eu=state.euro;
+  let h=banner('EUROPE','m')+BLANK;
+  if(!eu){
+    h+=L(sp(' NOT IN EUROPE THIS SEASON','w'))+BLANK
+      +L(sp(' QUALIFICATION (PREMIER LEAGUE ONLY):','c'))
+      +L(sp('  1ST-4TH -> CHAMPIONS LEAGUE','w'))
+      +L(sp('  5TH (OR CUP WINNERS) -> EUROPA LEAGUE','w'))
+      +BLANK+L(sp(' FINISH HIGH TO EARN YOUR PLACE','m'));
+    return h;
+  }
+  h+=L(sp(' COMPETITION: ','w')+sp(eu.comp==='UCL'?'CHAMPIONS LEAGUE':'EUROPA LEAGUE','y'));
+  h+=L(sp(' STAGE: ','w')+sp(eu.result||eu.stage,eu.eliminated?'rd':'g'));
+  if(eu.stage==='LEAGUE'||eu.played.length){
+    h+=BLANK+L(sp(' LEAGUE PHASE ('+eu.played.length+'/8): '+eu.pts+' PTS','c'));
+    eu.played.forEach((pl,k)=>{
+      h+=L(sp('  '+padl(k+1,2)+' v '+padName(TEAMS[pl.opp].n,20),'w')
+        +sp(pl.pts===3?'WIN':pl.pts===1?'DRAW':'LOSS',pl.pts===3?'g':pl.pts===1?'y':'rd'));
+    });
+    h+=L(sp(' NEED 16 PTS FOR DIRECT QF, 10+ FOR PLAY-OFF','m'));
+  }
+  return h;
+}
+
+function pageSacked(){
+  return BLANK+banner('SACKED!','brd')+BLANK
+    +L(sp(' THE '+TEAMS[state.teamIdx].n+' BOARD HAVE','w'))
+    +L(sp(' TERMINATED YOUR CONTRACT.','w'))+BLANK
+    +L(sp(' SEASONS IN CHARGE: '+state.season,'c'))
+    +L(sp(' FINAL LEAGUE POS: '+myPos(),'c'))+BLANK
+    +L(sp(' THE LEAGUE MOVES ON WITHOUT YOU','m'))+BLANK
+    +L(sp(' ','w')+`<span class="lnk by" onclick="resetAll()"> START NEW CAREER </span>`);
+}
+
+function pageNewGame(){
+  return BLANK+banner('NEW GAME','brd')+BLANK
+    +L(sp(' THIS WILL WIPE YOUR SAVED CAREER!','y'))+BLANK
+    +L(sp(' ','w')+`<span class="lnk brd" onclick="resetAll()"> CONFIRM — WIPE + RESTART </span>`)
+    +BLANK
+    +L(sp(' ','w')+`<span class="lnk bgr" onclick="go(300)"> NO! BACK TO SAFETY </span>`)
+    +BLANK+L(sp(' TO SAVE OR BACK UP YOUR CAREER: PAGE 316','m'));
+}
+
+function pageSaveGame(){
+  let h=banner('SAVE GAME','by')+BLANK;
+  h+=L(sp(msg?' '+msg:' YOUR CAREER AUTO-SAVES AFTER EVERY ACTION',msg?'y':'c'))+BLANK;
+  h+=L(sp(' ','w')+`<span class="lnk bgr" onclick="manualSave()"> SAVE NOW </span>`)+BLANK;
+  h+=L(sp(' BACK UP YOUR CAREER TO A FILE:','w'));
+  h+=L(sp(' ','w')+`<span class="lnk by" onclick="exportSave()"> EXPORT SAVE FILE </span>`)+BLANK;
+  h+=L(sp(' RESTORE FROM A PREVIOUSLY SAVED FILE:','w'));
+  h+=L(sp(' ','w')+`<span class="lnk by" onclick="triggerImport()"> IMPORT SAVE FILE </span>`)+BLANK;
+  h+=L(sp(' WIPE + START OVER: PAGE 309','m'));
+  return h;
+}
+
+function pageClassifieds(){
+  let h=banner('CLASSIFIEDS','m')+BLANK;
+  h+=L(sp(' ALL '+ADS.length+' SMALL ADS ON THE BOOKS TODAY:','c'))+BLANK;
+  ADS.forEach((ad,i)=>{h+=L(sp(' '+ad,i%2?'c':'w'));});
+  return h;
+}
+
+function ordinal(n){
+  const s=n%10===1&&n!==11?'ST':n%10===2&&n!==12?'ND':n%10===3&&n!==13?'RD':'TH';
+  return n+s;
+}
+
+// ---------- input ----------
+document.addEventListener('keydown',e=>{
+  if(e.key>='0'&&e.key<='9'){
+    kbuf+=e.key;
+    if(kbuf.length===3){const p=+kbuf;kbuf='';go(p);}
+    renderHdr();
+  }else if(e.key==='Escape'){kbuf='';renderHdr();}
+});
+
+// ---------- boot ----------
+// stretch the CRT horizontally to fill the window (real Ceefax cells were wide)
+function fitScreen(){
+  const crt=$('crt');
+  const sx=Math.max(1,Math.min(2.1,(innerWidth*0.94)/crt.offsetWidth));
+  crt.style.transform='scaleX('+sx.toFixed(3)+')';
+}
+addEventListener('resize',fitScreen);
+loadGame();
+render();
+fitScreen();
+setInterval(renderHdr,1000);
+</script>
+</body>
+</html>
