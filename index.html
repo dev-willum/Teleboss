@@ -30,10 +30,10 @@ span{text-shadow:0 0 5px currentColor}
 .btn{background:#ff0;color:#000;cursor:pointer;text-shadow:none}
 .btn:hover{background:#fff}
 #ftx{margin-top:.6em}
-#matchlog{scrollbar-color:#ff0 #000;scrollbar-width:thin}
-#matchlog::-webkit-scrollbar{width:10px}
-#matchlog::-webkit-scrollbar-track{background:#000}
-#matchlog::-webkit-scrollbar-thumb{background:#ff0;border-radius:0}
+#matchlog,.scrollbox{scrollbar-color:#ff0 #000;scrollbar-width:thin}
+#matchlog::-webkit-scrollbar,.scrollbox::-webkit-scrollbar{width:10px}
+#matchlog::-webkit-scrollbar-track,.scrollbox::-webkit-scrollbar-track{background:#000}
+#matchlog::-webkit-scrollbar-thumb,.scrollbox::-webkit-scrollbar-thumb{background:#ff0;border-radius:0}
 </style>
 </head>
 <body>
@@ -449,15 +449,15 @@ function clubBudget(t){return Math.max(5,Math.round((TEAMS[t].str-55)*3+15));}
 function newGame(teamIdx){
   ensureSquadData();
   const div=teamIdx<DIV1_SIZE?1:2;
-  state={v:9,teamIdx,season:1,tactic:'BAL',speed:'x2',formation:'442',
+  state={v:10,teamIdx,season:1,tactic:'BAL',speed:'x2',formation:'442',
     budget:clubBudget(teamIdx),market:[],
     div:TEAMS.map((_,i)=>i<DIV1_SIZE?1:i<DIV2_SIZE?2:3),
     sp:0,cup:null,conf:60,news:[],sacked:false,
     rep:div===1?30:15,offer:null,honours:[],snd:true,euro:null,lineup:[],rejected:{},
-    freeAgents:[],target:null,tots:[],loans:{out:[]},
+    freeAgents:[],target:null,tots:[],loans:{out:[]},hof:{},
     facilities:{stadium:1,training:1,youth:1},career:{p:0,w:0,d:0,l:0,gf:0,ga:0},
     squads:TEAMS.map(t=>t.p.map(([name,pos,rat,age])=>
-      ({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)})))};
+      ({name,pos,rat,form:0,goals:0,assists:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)})))};
   state.fx={1:genFixtures(divTeams(1)),2:genFixtures(divTeams(2))};
   state.res={1:[],2:[]};
   state.cup=initCup();
@@ -503,7 +503,7 @@ function signFreeAgent(idx){
   const p=state.freeAgents[idx];if(!p)return;
   if(mySquad().length>=20){msg='SQUAD FULL (MAX 20)';render();return;}
   state.freeAgents.splice(idx,1);
-  mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:0,inj:0,sus:0,age:p.age,
+  mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:0,assists:0,inj:0,sus:0,age:p.age,
     listed:false,loanListed:false,yellows:0,contract:2+rnd(2)});
   msg=p.name+' SIGNED ON A FREE TRANSFER!';
   addNews(p.name+' JOINS '+TEAMS[state.teamIdx].n+' ON A FREE TRANSFER');
@@ -553,6 +553,13 @@ function newSeason(){
   // ---- resolve the pyramid: promotion & relegation for both divisions ----
   finishOtherDivision();
   const d1tab=table(1),d2tab=table(2);
+  // Community Shield: last season's champions vs cup winners, curtain-raiser for the new season
+  const champ1=d1tab[0].i,cupWinner=state.cup.winner;
+  if(cupWinner!=null&&champ1!==cupWinner){
+    const shieldWinner=singleMatchWinner(champ1,cupWinner);
+    addNews(TEAMS[shieldWinner].n+' WIN THE COMMUNITY SHIELD');
+    if(shieldWinner===state.teamIdx){state.budget+=3;state.rep=clamp(state.rep+2,0,99);}
+  }
   const relegatedFromD1=d1tab.slice(-3).map(r=>r.i);
   const autoUp=d2tab.slice(0,2).map(r=>r.i);
   const playoffTeams=d2tab.slice(2,6).map(r=>r.i);
@@ -576,7 +583,7 @@ function newSeason(){
     if(i===state.teamIdx){userRelegatedToL1=true;return;}
     const old=TEAMS[i].n,[nn,cc,ss]=l1Draw.pop()||pick(L1_POOL);
     TEAMS[i].n=nn;TEAMS[i].c=cc;TEAMS[i].str=ss;TEAMS[i].p=genSquad(ss,false);
-    state.squads[i]=TEAMS[i].p.map(([name,pos,rat,age])=>({name,pos,rat,form:0,goals:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)}));
+    state.squads[i]=TEAMS[i].p.map(([name,pos,rat,age])=>({name,pos,rat,form:0,goals:0,assists:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)}));
     state.div[i]=2;
     addNews(old+' RELEGATED TO LEAGUE ONE - REPLACED BY '+nn);
   });
@@ -613,7 +620,9 @@ function newSeason(){
         continue;
       }
       if(p.contract<=0){
-        if(ti===state.teamIdx){
+        if(sq.length<=13){
+          p.contract=2+rnd(3); // squad too thin to lose anyone right now — re-sign instead
+        }else if(ti===state.teamIdx){
           departedFree.push(p.name);
           sq.splice(i,1);
         }else if(Math.random()<0.3){
@@ -623,7 +632,7 @@ function newSeason(){
         }else p.contract=2+rnd(3);
       }
     }
-    sq.forEach(p=>{p.goals=0;p.form=0;p.inj=0;p.sus=0;p.yellows=0;});
+    sq.forEach(p=>{p.goals=0;p.assists=0;p.form=0;p.inj=0;p.sus=0;p.yellows=0;});
   });
   retired.forEach(n=>addNews(n+' RETIRES. YOUTH PROMOTED'));
   departedFree.forEach(n=>addNews(n+' LEAVES ON A FREE TRANSFER - CONTRACT EXPIRED'));
@@ -658,7 +667,7 @@ function newSeason(){
 function resetAll(){localStorage.removeItem('teleboss_pl');state=null;live=null;go(300);}
 function save(){try{localStorage.setItem('teleboss_pl',JSON.stringify(state));}catch(e){}}
 function loadGame(){
-  try{const s=JSON.parse(localStorage.getItem('teleboss_pl'));if(s&&s.v===9)state=s;}catch(e){}
+  try{const s=JSON.parse(localStorage.getItem('teleboss_pl'));if(s&&s.v===10)state=s;}catch(e){}
 }
 function manualSave(){
   save();
@@ -738,7 +747,7 @@ let pend=null,msg='';
 function youth(pos,str,sq,academyBoost){
   let name,guard=0;
   do{name=YINIT[rnd(YINIT.length)]+'.'+pick(YSUR);}while(sq.some(p=>p.name===name)&&guard++<50);
-  return {name,pos,rat:clamp(str-12+rnd(9)+(academyBoost||0)*2,40,88),form:0,goals:0,inj:0,sus:0,age:17+rnd(2),listed:false,loanListed:false,yellows:0,contract:3+rnd(3)};
+  return {name,pos,rat:clamp(str-12+rnd(9)+(academyBoost||0)*2,40,88),form:0,goals:0,assists:0,inj:0,sus:0,age:17+rnd(2),listed:false,loanListed:false,yellows:0,contract:3+rnd(3)};
 }
 function setForm(k){state.formation=k;autoPick();save();render();}
 function tglSnd(){state.snd=!state.snd;save();render();}
@@ -799,7 +808,7 @@ function windowInfo(){
 function windowOpen(){return windowInfo().open;}
 
 // ---------- transfer market ----------
-let marketClub=null,scoutDiv=null,classPage=0;
+let marketClub=null,scoutDiv=null,classPage=0,marketPage=0,loanMarketPage=0;
 function allListedPlayers(){
   const out=[];
   divTeams(1).concat(divTeams(2)).forEach(t=>{
@@ -858,6 +867,7 @@ function refreshLoanListings(){
   pool.forEach(t=>{
     if(t===state.teamIdx)return;
     const sq=state.squads[t];
+    if(sq.length<=13)return; // too thin to spare anyone on loan
     const byRat=[...sq].sort((a,b)=>b.rat-a.rat);
     sq.forEach(p=>{
       if(p.onLoanFrom!=null)return; // already out on loan, can't be loaned again
@@ -886,6 +896,7 @@ function loanIn(t,idx){
   if(!windowOpen()){msg='TRANSFER WINDOW CLOSED';render();return;}
   const sq=state.squads[t],p=sq[idx];if(!p||!p.loanListed)return;
   if(mySquad().length>=20){msg='SQUAD FULL (MAX 20)';render();return;}
+  if(sq.length<=12){msg=TEAMS[t].n+' CAN’T LOAN OUT - SQUAD TOO THIN';render();return;}
   const fee=Math.max(1,Math.round(val(p)*0.2));
   if(state.budget<fee){msg='NOT ENOUGH FUNDS';render();return;}
   state.budget-=fee;
@@ -905,6 +916,7 @@ function attemptSign(t,name,key){
   if(!windowOpen()){msg='TRANSFER WINDOW CLOSED';pend=null;render();return;}
   const cost=askingPrice(t,p);
   if(mySquad().length>=20){msg='SQUAD FULL (MAX 20)';pend=null;render();return;}
+  if(sq.length<=12){msg=TEAMS[t].n+' WON’T SELL - SQUAD TOO THIN';pend=null;render();return;}
   if(state.budget<cost){msg='NOT ENOUGH FUNDS';pend=null;render();return;}
   const rk=t+':'+name;
   state.rejected=state.rejected||{};
@@ -920,7 +932,7 @@ function attemptSign(t,name,key){
   }
   state.budget-=cost;
   sq.splice(sq.indexOf(p),1);
-  mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:p.goals,inj:0,sus:0,age:p.age,
+  mySquad().push({name:p.name,pos:p.pos,rat:p.rat,form:0,goals:p.goals,assists:p.assists||0,inj:0,sus:0,age:p.age,
     listed:false,loanListed:false,yellows:0,boughtFor:cost,boughtSp:state.sp,contract:3+rnd(3)});
   pend=null;msg=p.name+' SIGNED FOR £'+cost+'M!';
   addNews(p.name+' SIGNS FOR '+TEAMS[state.teamIdx].n+' (£'+cost+'M)');
@@ -1047,6 +1059,7 @@ function boardMood(){
 function scorer(t){
   const sq=state.squads[t];
   const pool=(t===state.teamIdx)?state.lineup.map(i=>sq[i]):sq;
+  if(!pool.length)return{name:'SUB',pos:'FW',rat:50,goals:0}; // defensive fallback — squad should never truly empty out
   const w=p=>(p.pos==='FW'?6:p.pos==='MF'?2.5:p.pos==='DF'?0.8:0.05)*Math.max(1,p.rat-62);
   let tot=pool.reduce((s,p)=>s+w(p),0),r=Math.random()*tot;
   for(const p of pool){r-=w(p);if(r<=0)return p;}
@@ -1058,8 +1071,25 @@ function goal(m,home){
   p.goals++;
   if(m===live.user){
     const mine=(t===state.teamIdx);
+    let assistName=null;
+    if(mine){
+      (live.matchScorers=live.matchScorers||[]).push(p.name);
+      if(Math.random()<0.75){
+        const sq=mySquad();
+        const mates=state.lineup.map(i=>sq[i]).filter(q=>q!==p);
+        if(mates.length){
+          const w=q=>q.pos==='MF'?3:q.pos==='FW'?1.5:q.pos==='DF'?1:0.3;
+          const tot=mates.reduce((s,q)=>s+w(q),0);
+          let r=Math.random()*tot,assister=mates[mates.length-1];
+          for(const q of mates){r-=w(q);if(r<=0){assister=q;break;}}
+          assister.assists=(assister.assists||0)+1;
+          assistName=assister.name;
+          (live.matchAssists=live.matchAssists||[]).push(assistName);
+        }
+      }
+    }
     beep(mine?[[880,90],[1318,150]]:[[392,100],[262,200]]);
-    live.log.push({t:padl(live.min,2)+"' GOAL! "+p.name+" ("+TEAMS[t].c+") "+m.hs+"-"+m.as,
+    live.log.push({t:padl(live.min,2)+"' GOAL! "+p.name+(assistName?" (ASST: "+assistName+")":"")+" ("+TEAMS[t].c+") "+m.hs+"-"+m.as,
                    c:mine?'y':'rd'});
   }else{
     live.log.push({t:padl(live.min,2)+"' "+pad(TEAMS[m.h].c,4)+m.hs+"-"+m.as+" "+TEAMS[m.a].c,c:'c'});
@@ -1150,10 +1180,16 @@ function teamTalk(k){
 function injureRandom(){
   if(!state.lineup.length)return;
   const sq=mySquad();
-  const k=rnd(state.lineup.length),li=state.lineup[k],p=sq[li];
+  // injury-prone players (repeat customers) are more likely to be the one who goes down
+  const weights=state.lineup.map(li=>1+(sq[li].injuryCount||0)*0.6);
+  const total=weights.reduce((a,b)=>a+b,0);
+  let r=Math.random()*total,k=0;
+  while(k<weights.length-1&&r>weights[k]){r-=weights[k];k++;}
+  const li=state.lineup[k],p=sq[li];
   p.inj=1+rnd(5);
+  p.injuryCount=(p.injuryCount||0)+1;
   state.lineup.splice(k,1);
-  live.log.push({t:padl(live.min,2)+"' "+p.name+" INJURED - OFF ("+p.inj+" MD)",c:'rd'});
+  live.log.push({t:padl(live.min,2)+"' "+p.name+" INJURED - OFF ("+p.inj+" MD)"+(p.injuryCount>=3?' - INJURY PRONE':''),c:'rd'});
   let sub=-1,best=-1;
   sq.forEach((q,i)=>{
     if(!avail(q)||i===li||state.lineup.includes(i))return;
@@ -1237,6 +1273,10 @@ function finishMatch(){
     if(res==='WIN')state.career.w++;else if(res==='LOSS')state.career.l++;else state.career.d++;
     state.career.gf+=u.h===state.teamIdx?u.hs:u.as;
     state.career.ga+=u.h===state.teamIdx?u.as:u.hs;
+    const hofOf=n=>state.hof[n]=state.hof[n]||{goals:0,assists:0,apps:0};
+    state.lineup.forEach(i=>{const pl=mySquad()[i];if(pl)hofOf(pl.name).apps++;});
+    (live.matchScorers||[]).forEach(n=>hofOf(n).goals++);
+    (live.matchAssists||[]).forEach(n=>hofOf(n).assists++);
   }
   if(e.t==='L'){
     const prize=res==='WIN'?3:res==='DRAW'?1:0;
@@ -1385,6 +1425,14 @@ function finishMatch(){
     const ph=clamp(Math.round(50+(u.hAtt-u.aAtt)*0.8),25,75);
     live.log.push({t:"SHOTS "+sh+"-"+sa+"  POSSESSION "+ph+"-"+(100-ph),c:'c'});
     beep([[660,120],[660,120],[660,320]]);
+    const sq=mySquad();
+    const scorers=(live.matchScorers||[]).map(n=>sq.find(p=>p.name===n)).filter(Boolean);
+    const xi=state.lineup.map(i=>sq[i]);
+    const potm=(scorers.length?scorers:xi).sort((a,b)=>eff(b)-eff(a))[0];
+    if(potm){
+      potm.form=clamp(potm.form+1,-3,3);
+      live.log.push({t:"MAN OF THE MATCH: "+potm.name,c:'y'});
+    }
   }
   save();
 }
@@ -1410,6 +1458,8 @@ function go(p){
   if(p===303&&state)viewMD=Math.min(state.res[myDiv()].length,state.fx[myDiv()].length-1);
   if(p===304)tableDiv=null;
   if(p===317)classPage=0;
+  if(p===307)marketPage=0;
+  if(p===321)loanMarketPage=0;
   render();
 }
 function render(){renderHdr();renderMain();renderFtx();}
@@ -1452,9 +1502,11 @@ function renderMain(){
     case 318:h=pageLoans();break;
     case 319:h=pageFacilities();break;
     case 320:h=pageManagerProfile();break;
+    case 321:h=pageLoanMarket();break;
+    case 322:h=pageHallOfFame();break;
     default:h=BLANK+banner('PAGE NOT IN USE','bw')+BLANK
       +L(sp('  THIS PAGE IS CURRENTLY NOT IN USE','w'))
-      +L(sp('  PLEASE SELECT PAGES 300-320','c'))+BLANK
+      +L(sp('  PLEASE SELECT PAGES 300-322','c'))+BLANK
       +L(sp('  ','w')+sp('<span class="lnk by" onclick="go(300)"> INDEX 300 </span>','w'));
   }
   $('main').innerHTML=h;
@@ -1523,6 +1575,7 @@ function pageMenu(){
   h+=item('LOAN SYSTEM',318);
   h+=item('CLUB FACILITIES',319);
   h+=item('MANAGER PROFILE',320);
+  h+=item('HALL OF FAME',322);
   h+=item('TELEBOSS CUP',310);
   h+=item('EUROPE',314);
   h+=item('NEWS',311);
@@ -1576,6 +1629,10 @@ function pageSquad(){
   const onLoan=sq.filter(p=>p.onLoanFrom!=null);
   if(onLoan.length){
     h+=BLANK+L(sp(' ON LOAN: ','m')+sp(onLoan.map(p=>p.name).join(', '),'c'));
+  }
+  const fragile=sq.filter(p=>(p.injuryCount||0)>=3);
+  if(fragile.length){
+    h+=BLANK+L(sp(' INJURY PRONE: ','rd')+sp(fragile.map(p=>p.name).join(', '),'c'));
   }
   h+=L(sp(' MANAGE LOAN DEALS: PAGE 318','m'));
   return h;
@@ -1645,17 +1702,29 @@ function pageTable(){
 }
 
 function pageScorers(){
-  const all=[];
-  state.squads.forEach((sq,t)=>sq.forEach(p=>{if(p.goals>0)all.push({p,t});}));
-  all.sort((a,b)=>b.p.goals-a.p.goals);
+  const goals=[],assists=[];
+  state.squads.forEach((sq,t)=>sq.forEach(p=>{
+    if(p.goals>0)goals.push({p,t});
+    if(p.assists>0)assists.push({p,t});
+  }));
+  goals.sort((a,b)=>b.p.goals-a.p.goals);
+  assists.sort((a,b)=>b.p.assists-a.p.assists);
   let h=banner('GOLDEN BOOT','by')+BLANK
     +L(sp('  # PLAYER         CLUB  GLS','c'));
-  if(!all.length)h+=BLANK+L(sp('  NO GOALS SCORED YET','w'));
-  all.slice(0,15).forEach((e,k)=>{
+  if(!goals.length)h+=L(sp('  NO GOALS SCORED YET','w'));
+  goals.slice(0,8).forEach((e,k)=>{
     const mine=e.t===state.teamIdx;
     h+=L(sp(padl(k+1,3)+' ','c')+sp(padName(e.p.name,15),mine?'y':'w')
       +sp(pad(TEAMS[e.t].c,6),'c')+sp(padl(e.p.goals,3),'y'));
   });
+  h+=BLANK+L(sp('  # PLAYER         CLUB  AST','g'));
+  if(!assists.length)h+=L(sp('  NO ASSISTS RECORDED YET','w'));
+  assists.slice(0,8).forEach((e,k)=>{
+    const mine=e.t===state.teamIdx;
+    h+=L(sp(padl(k+1,3)+' ','c')+sp(padName(e.p.name,15),mine?'y':'w')
+      +sp(pad(TEAMS[e.t].c,6),'c')+sp(padl(e.p.assists,3),'g'));
+  });
+  h+=BLANK+L(sp(' CAREER STATS: HALL OF FAME - PAGE 322','m'));
   return h;
 }
 
@@ -1797,38 +1866,48 @@ function pageWindowClosed(title){
 }
 function pageBuy(){
   if(!windowOpen())return pageWindowClosed('TRANSFER MARKET');
+  const entries=[
+    ...allListedPlayers().map(x=>({kind:'L',...x})),
+    ...state.freeAgents.map((p,idx)=>({kind:'F',p,idx})),
+  ];
+  const perPage=8,total=Math.max(1,Math.ceil(entries.length/perPage));
+  marketPage=clamp(marketPage,0,total-1);
   let h=banner('TRANSFER MARKET','by');
   h+=L(sp(' BANK: ','w')+sp('£'+state.budget+'M','g')
     +sp('   SQUAD: ','w')+sp(mySquad().length+'/20','c'));
-  h+=L(sp(msg?' '+msg:' TRANSFER LISTED — DISCOUNTED, KEEN TO MOVE',msg?'y':'c'));
+  h+=L(`<span class="lnk y" onclick="marketPage--;render()">${pad(' << PREV',10)}</span>`
+    +sp(pad('PAGE '+(marketPage+1)+'/'+total,20),'w')
+    +`<span class="lnk y" onclick="marketPage++;render()">${padl('NEXT >> ',10)}</span>`);
+  h+=L(sp(msg?' '+msg:' L=LISTED  F=FREE AGENT',msg?'y':'c'));
   h+=L(sp('   NAME      POS RAT WILL CLB    £M','c'));
-  const listed=allListedPlayers();
-  if(!listed.length)h+=L(sp('  NONE LISTED RIGHT NOW - CHECK NEXT MATCHDAY','w'));
-  listed.forEach(({t,idx,p})=>{
-    const cost=askingPrice(t,p);
-    const key='a'+t+':'+idx;
-    const sel=pend===key;
-    const marker=(sel?'►':'L')+' ';
-    const will=Math.round(effectiveWillingness(p,t)*100);
-    const willCl=will>=70?'g':will>=40?'y':'rd';
-    h+=L(`<span class="lnk" onclick="approachPlayer(${t},${idx})">`
-      +sp(marker,sel?'y':'m')
-      +sp(padName(p.name,11),sel?'y':'m')
-      +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
-      +sp(padl(will+'%',5),willCl)
-      +sp(' '+pad(TEAMS[t].c,4),'c')
-      +sp(padl(sel?'OFFER?':cost,6),sel?'g':'m')+'</span>');
-  });
-  if(state.freeAgents.length){
-    h+=BLANK+L(sp(' FREE AGENTS — NO FEE, CLICK TO SIGN:','y'));
-    state.freeAgents.forEach((p,idx)=>{
+  const slice=entries.slice(marketPage*perPage,(marketPage+1)*perPage);
+  if(!slice.length)h+=L(sp('  NONE AVAILABLE RIGHT NOW','w'));
+  slice.forEach(entry=>{
+    if(entry.kind==='L'){
+      const {t,idx,p}=entry;
+      const cost=askingPrice(t,p);
+      const key='a'+t+':'+idx;
+      const sel=pend===key;
+      const marker=(sel?'►':'L')+' ';
+      const will=Math.round(effectiveWillingness(p,t)*100);
+      const willCl=will>=70?'g':will>=40?'y':'rd';
+      h+=L(`<span class="lnk" onclick="approachPlayer(${t},${idx})">`
+        +sp(marker,sel?'y':'m')
+        +sp(padName(p.name,11),sel?'y':'m')
+        +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+        +sp(padl(will+'%',5),willCl)
+        +sp(' '+pad(TEAMS[t].c,4),'c')
+        +sp(padl(sel?'OFFER?':cost,6),sel?'g':'m')+'</span>');
+    }else{
+      const {p,idx}=entry;
       h+=L(`<span class="lnk" onclick="signFreeAgent(${idx})">`
-        +sp('  '+padName(p.name,13),'w')+sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
-        +sp(padl(p.age,4)+' ','c')+sp('FREE','g')+'</span>');
-    });
-  }
+        +sp('F ','g')+sp(padName(p.name,11),'g')
+        +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+        +sp(padl(p.age,5)+' ','c')+sp('FREE','g')+'</span>');
+    }
+  });
   h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="go(315)"> SCOUT CLUBS — PAGE 315 </span>`);
-  h+=BLANK+L(sp(' SELL PLAYERS ON PAGE 308','m'));
+  h+=L(sp(' SELL PLAYERS ON PAGE 308','m'));
   return h;
 }
 function pageScout(){
@@ -1962,15 +2041,18 @@ function pageJob(){
 
 function pageHonours(){
   let h=banner('HONOURS BOARD','by')+BLANK;
+  const recent=[...state.honours].reverse();
   h+=L(sp(' S DIV CLUB POS  CUP EUROPE','c'));
-  if(!state.honours.length)h+=L(sp(' YOUR STORY STARTS HERE...','w'));
-  state.honours.forEach(x=>{
+  if(!recent.length)h+=L(sp(' YOUR STORY STARTS HERE...','w'));
+  h+='<div id="honourslog" class="scrollbox" style="height:8.4em;overflow-y:auto">';
+  recent.forEach(x=>{
     h+=L(sp(padl(x.s,2)+' ','w')+sp(pad(x.div===1?'PL':'CH',4),'c')
       +sp(pad(x.team,5),'y')
       +sp(pad(ordinal(x.pos),5),x.pos===1?'y':'w')
       +sp(pad(x.cup,5),x.cup==='WON'?'y':'w')
       +sp(x.euro&&x.euro!=='-'?x.euro:'','m'));
   });
+  h+='</div>';
   const tr=state.honours.filter(x=>x.pos===1).length
           +state.honours.filter(x=>x.cup==='WON').length
           +state.honours.filter(x=>x.euro&&x.euro.includes('CHAMPION')).length;
@@ -2030,10 +2112,9 @@ function pageNewGame(){
 function pageLoans(){
   if(!windowOpen())return pageWindowClosed('LOAN SYSTEM');
   let h=banner('LOAN SYSTEM','by')+BLANK;
-  h+=L(sp(msg?' '+msg:' MANAGE LOAN DEALS IN AND OUT',msg?'y':'c'))+BLANK;
+  h+=L(sp(msg?' '+msg:' SEND SQUAD PLAYERS OUT ON LOAN',msg?'y':'c'))+BLANK;
   const sq=mySquad();
   const benched=sq.map((p,i)=>({p,i})).filter(x=>!state.lineup.includes(x.i)&&x.p.onLoanFrom==null);
-  h+=L(sp(' SEND ON LOAN (SQUAD PLAYERS):','g'));
   if(!benched.length)h+=L(sp('  NO ELIGIBLE PLAYERS','w'));
   benched.forEach(({p,i})=>{
     const fee=Math.max(1,Math.round(val(p)*0.15));
@@ -2045,21 +2126,35 @@ function pageLoans(){
     h+=BLANK+L(sp(' CURRENTLY OUT ON LOAN:','m'));
     state.loans.out.forEach(p=>h+=L(sp('  '+p.name+' - RETURNS NEXT SEASON','w')));
   }
-  h+=BLANK+L(sp(' LOAN MARKET - YOUNG PLAYERS AVAILABLE:','g'));
+  h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="go(321)"> BROWSE LOAN MARKET — PAGE 321 </span>`);
+  return h;
+}
+function pageLoanMarket(){
+  if(!windowOpen())return pageWindowClosed('LOAN MARKET');
   const market=[];
   divTeams(1).concat(divTeams(2)).forEach(t=>{
     if(t===state.teamIdx)return;
     state.squads[t].forEach((p,idx)=>{if(p.loanListed)market.push({t,idx,p});});
   });
   market.sort((a,b)=>b.p.rat-a.p.rat);
-  if(!market.length)h+=L(sp('  NONE AVAILABLE RIGHT NOW','w'));
-  market.forEach(({t,idx,p})=>{
+  const perPage=8,total=Math.max(1,Math.ceil(market.length/perPage));
+  loanMarketPage=clamp(loanMarketPage,0,total-1);
+  let h=banner('LOAN MARKET','by');
+  h+=L(`<span class="lnk y" onclick="loanMarketPage--;render()">${pad(' << PREV',10)}</span>`
+    +sp(pad('PAGE '+(loanMarketPage+1)+'/'+total,20),'w')
+    +`<span class="lnk y" onclick="loanMarketPage++;render()">${padl('NEXT >> ',10)}</span>`);
+  h+=L(sp(msg?' '+msg:' YOUNG PLAYERS AVAILABLE ON LOAN:',msg?'y':'c'));
+  h+=L(sp('   NAME      POS RAT AGE CLB    £M','c'));
+  const slice=market.slice(loanMarketPage*perPage,(loanMarketPage+1)*perPage);
+  if(!slice.length)h+=L(sp('  NONE AVAILABLE RIGHT NOW','w'));
+  slice.forEach(({t,idx,p})=>{
     const fee=Math.max(1,Math.round(val(p)*0.2));
     h+=L(`<span class="lnk" onclick="loanIn(${t},${idx})">`
       +sp('  '+padName(p.name,11),'w')+sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
       +sp(padl(p.age,4),'c')+sp(' '+pad(TEAMS[t].c,4),'c')
       +sp(padl(fee,5)+'M','y')+'</span>');
   });
+  h+=BLANK+L(sp(' SEND PLAYERS OUT ON LOAN: PAGE 318','m'));
   return h;
 }
 
@@ -2107,6 +2202,24 @@ function pageManagerProfile(){
     +sp('  W','g')+sp(String(c.w),'g')+sp(' D','y')+sp(String(c.d),'y')+sp(' L','rd')+sp(String(c.l),'rd'));
   h+=L(sp(' WIN RATE: ','w')+sp(winPct+'%',winPct>=50?'g':winPct>=35?'y':'rd'));
   h+=L(sp(' GOALS: ','w')+sp(c.gf+' FOR, '+c.ga+' AGAINST','c'));
+  h+=BLANK+L(sp(' PLAYER CAREER STATS: HALL OF FAME P.322','m'));
+  return h;
+}
+function pageHallOfFame(){
+  const entries=Object.entries(state.hof).map(([name,h])=>({name,...h}));
+  const topScorers=[...entries].filter(e=>e.goals>0).sort((a,b)=>b.goals-a.goals).slice(0,6);
+  const topAssists=[...entries].filter(e=>e.assists>0).sort((a,b)=>b.assists-a.assists).slice(0,6);
+  const topApps=[...entries].filter(e=>e.apps>0).sort((a,b)=>b.apps-a.apps).slice(0,6);
+  let h=banner('HALL OF FAME','by')+BLANK;
+  h+=L(sp(' ALL-TIME TOP SCORERS FOR YOU:','g'));
+  if(!topScorers.length)h+=L(sp('  NONE YET','w'));
+  topScorers.forEach((e,i)=>h+=L(sp(' '+padl(i+1,2)+' ','c')+sp(padName(e.name,15),'w')+sp(padl(e.goals,4),'y')));
+  h+=BLANK+L(sp(' ALL-TIME TOP ASSISTS FOR YOU:','g'));
+  if(!topAssists.length)h+=L(sp('  NONE YET','w'));
+  topAssists.forEach((e,i)=>h+=L(sp(' '+padl(i+1,2)+' ','c')+sp(padName(e.name,15),'w')+sp(padl(e.assists,4),'g')));
+  h+=BLANK+L(sp(' MOST APPEARANCES FOR YOU:','g'));
+  if(!topApps.length)h+=L(sp('  NONE YET','w'));
+  topApps.forEach((e,i)=>h+=L(sp(' '+padl(i+1,2)+' ','c')+sp(padName(e.name,15),'w')+sp(padl(e.apps,4),'c')));
   return h;
 }
 function pageSaveGame(){
