@@ -260,26 +260,347 @@ const L1_POOL=[["WIGAN","WIG",46],["BOLTON","BOL",47],["READING","REA",45],
  ["ROTHERHAM","ROT",44],["HUDDERSFIELD","HUD",46],["LEYTON ORIENT","ORI",43],
  ["PETERBOROUGH","PET",44],["EXETER CITY","EXE",42]];
 
-// ---------- EUROPEAN CLUBS (opponents only — not part of the English pyramid) ----------
-const EURO_CLUBS=[
-["REAL MADRID","RMA",94],["BARCELONA","BAR",92],["BAYERN MUNICH","BAY",93],["PARIS SG","PSG",92],
-["INTER MILAN","INT",89],["JUVENTUS","JUV",86],["NAPOLI","NAP",85],["ATLETICO MADRID","ATM",85],
-["BAYER LEVERKUSEN","LEV",84],["DORTMUND","DOR",83],["BENFICA","BEN",82],
-["RB LEIPZIG","RBL",81],["SPORTING CP","SPO",81],["ATALANTA","ATA",80],["AJAX","AJA",79],
-["AS ROMA","ROM",79],["MARSEILLE","OM",79],["MONACO","MON",78],["PSV EINDHOVEN","PSV",78],
-["GALATASARAY","GAL",78],["ATHLETIC BILBAO","ATH",78],["LAZIO","LAZ",77],
-["EINTRACHT","SGE",77],["LYON","LYO",76],["FENERBAHCE","FEN",76],
-["FEYENOORD","FEY",76],["VILLARREAL","VIL",76],["REAL SOCIEDAD","RSO",75],["LILLE","LIL",75],
-["CELTIC","CEL",75],["SEVILLA","SEV",74],["BOLOGNA","BOL",74],["CLUB BRUGGE","BRU",73],
-["RANGERS","RAN",73],["AC MILAN","ACM",88],
+// ---------- TOP 5 EUROPEAN LEAGUES (2025/26, real clubs) ----------
+// squads researched and filled in below; str reflects real-world 2025/26 club strength
+const LALIGA=[
+{n:"REAL MADRID",c:"RMA",str:93,p:[["COURTOIS","GK",91,34],["LUNIN","GK",78,26],
+ ["CARVAJAL","DF",87,33],["MILITAO","DF",86,27],["RUDIGER","DF",87,32],["ALABA","DF",83,33],["ALEXANDER-ARNOLD","DF",85,27],
+ ["BELLINGHAM","MF",91,22],["VALVERDE","MF",89,26],["TCHOUAMENI","MF",85,25],["CAMAVINGA","MF",84,22],["GULER","MF",81,21],
+ ["VINICIUS JR","FW",91,25],["MBAPPE","FW",94,26],["RODRYGO","FW",86,24],["MASTANTUONO","FW",78,18]]},
+{n:"BARCELONA",c:"BCN",str:92,p:[["TER STEGEN","GK",87,34],["JOAN GARCIA","GK",83,25],
+ ["CUBARSI","DF",85,19],["ARAUJO","DF",86,27],["KOUNDE","DF",86,27],["BALDE","DF",83,22],["CHRISTENSEN","DF",80,30],
+ ["PEDRI","MF",89,23],["DE JONG","MF",85,29],["GAVI","MF",84,21],["FERMIN LOPEZ","MF",81,23],["OLMO","MF",84,28],
+ ["LEWANDOWSKI","FW",87,37],["YAMAL","FW",92,18],["RAPHINHA","FW",87,29],["RASHFORD","FW",83,28]]},
+{n:"ATLETICO MADRID",c:"ATM",str:86,p:[["OBLAK","GK",87,33],["MUSSO","GK",76,32],
+ ["HANCKO","DF",81,28],["LE NORMAND","DF",80,29],["GIMENEZ","DF",78,31],["MOLINA","DF",78,28],["LLORENTE","DF",76,31],
+ ["KOKE","MF",78,34],["BARRIOS","MF",79,23],["GALLAGHER","MF",78,26],["CARDOSO","MF",74,24],["ALMADA","MF",80,25],
+ ["GRIEZMANN","FW",87,35],["ALVAREZ","FW",86,26],["BAENA","FW",78,24],["SORLOTH","FW",80,30]]},
+{n:"ATHLETIC CLUB",c:"ATH",str:78,p:[["SIMON","GK",83,29],["PADILLA","GK",68,22],
+ ["VIVIAN","DF",77,26],["LAPORTE","DF",80,32],["PAREDES","DF",74,26],["YERAY","DF",73,31],["ARESO","DF",70,26],
+ ["SANCET","MF",78,26],["VESGA","MF",73,33],["JAUREGIZAR","MF",74,22],["RUIZ DE GALARRETA","MF",70,32],["UNAI VENCEDOR","MF",69,25],
+ ["WILLIAMS N","FW",84,23],["WILLIAMS I","FW",81,32],["BERENGUER","FW",73,30],["GURUZETA","FW",72,29]]},
+{n:"VILLARREAL",c:"VIL",str:77,p:[["TENAS","GK",73,25],["CONDE","GK",67,27],
+ ["FOYTH","DF",78,28],["COSTA","DF",73,25],["VEIGA","DF",70,22],["CARDONA","DF",70,26],["PEDRAZA","DF",72,30],
+ ["PAREJO","MF",78,37],["PARTEY","MF",76,33],["COMESANA","MF",72,29],["GUEYE","MF",70,27],["MOLEIRO","MF",76,22],
+ ["MIKAUTADZE","FW",79,25],["PINO","FW",76,23],["MORENO G","FW",73,34],["AYOZE","FW",70,32]]},
+{n:"REAL BETIS",c:"BET",str:76,p:[["VALLES","GK",74,28],["PAU LOPEZ","GK",71,31],
+ ["NATAN","DF",73,25],["LLORENTE D","DF",72,32],["BARTRA","DF",70,35],["FIRPO","DF",71,29],["BELLERIN","DF",71,31],
+ ["ROCA","MF",74,29],["FORNALS","MF",76,30],["FIDALGO","MF",73,29],["LO CELSO","MF",74,30],["ISCO","MF",75,34],
+ ["EZZALZOULI","FW",73,24],["ANTONY","FW",76,26],["CUCHO HERNANDEZ","FW",73,27],["RIQUELME","FW",70,26]]},
+{n:"REAL SOCIEDAD",c:"RSO",str:75,p:[["REMIRO","GK",76,31],["MARRERO","GK",64,24],
+ ["ZUBELDIA","DF",72,29],["PACHECO","DF",71,25],["ARAMBURU","DF",70,23],["MUNOZ A","DF",70,28],["ODRIOZOLA","DF",71,30],
+ ["GORROTXATEGI","MF",70,24],["TURRIENTES","MF",71,24],["SUCIC","MF",73,23],["ZAKHARYAN","MF",73,23],["MENDEZ","MF",73,29],
+ ["BARRENETXEA","FW",73,24],["KUBO","FW",78,25],["OYARZABAL","FW",79,29],["GUEDES","FW",71,29]]},
+{n:"SEVILLA",c:"SEV",str:72,p:[["VLACHODIMOS","GK",73,32],["FLORES","GK",63,24],
+ ["MARCAO","DF",70,30],["GATTONI","DF",68,27],["NIANZOU","DF",69,24],["SUAZO","DF",68,28],["PEDROSA","DF",68,28],
+ ["AGOUME","MF",69,24],["SOW","MF",70,29],["GURIDI","MF",67,31],["VARGAS","MF",67,27],["EJUKE","MF",68,28],
+ ["ISAAC ROMERO","FW",68,26],["RAFA MIR","FW",67,29],["AKOR ADAMS","FW",65,26],["PEQUE","FW",64,23]]},
+{n:"CELTA VIGO",c:"CEL",str:68,p:[["RADU","GK",68,29],["VILLAR","GK",62,28],
+ ["STARFELT","DF",68,31],["UNAI NUNEZ","DF",67,29],["DOMINGUEZ C","DF",65,25],["ALONSO M","DF",67,35],["GALAN","DF",65,31],
+ ["MORIBA","MF",70,23],["FEBAS","MF",64,30],["VECINO","MF",65,34],["SOTELO","MF",62,22],["ROMAN","MF",62,23],
+ ["ASPAS","FW",72,38],["SWEDBERG","FW",66,22],["BORJA IGLESIAS","FW",65,33],["CARLES PEREZ","FW",64,28]]},
+{n:"MALLORCA",c:"MAL",str:66,p:[["BERGSTROM","GK",66,23],["ROYO","GK",58,26],
+ ["VALJENT","DF",67,30],["RAILLO","DF",66,34],["MOJICA","DF",64,33],["LATO","DF",63,28],["MOREY","DF",62,26],
+ ["SAMU COSTA","MF",66,25],["DARDER","MF",66,32],["MORLANES","MF",64,27],["MASCARELL","MF",62,33],["TORRE","MF",64,23],
+ ["MUNOZ ANTONIO","FW",62,29],["FUENTES","FW",63,29],["ABDON PRATS","FW",63,33],["VIRGILI","FW",60,19]]},
+{n:"OSASUNA",c:"OSA",str:65,p:[["HERRERA S","GK",65,33],["FERNANDEZ A","GK",60,35],
+ ["BOYOMO","DF",64,24],["CATENA","DF",65,31],["HERRANDO","DF",62,25],["BRETONES","DF",60,25],["ROSIER","DF",63,29],
+ ["TORRO","MF",64,31],["MONCAYOLA","MF",65,28],["OROZ","MF",64,24],["MOI GOMEZ","MF",63,32],["RUBEN GARCIA","MF",63,32],
+ ["BUDIMIR","FW",68,34],["RAUL GARCIA A","FW",62,25],["KIKE BARJA","FW",58,29],["RAUL MORO","FW",58,23]]},
+{n:"RAYO VALLECANO",c:"RAY",str:65,p:[["BATALLA","GK",65,30],["CARDENAS","GK",58,29],
+ ["LEJEUNE","DF",64,35],["RATIU","DF",65,28],["BALLIU","DF",62,34],["CHAVARRIA","DF",60,28],["FERNANDEZ P","DF",59,23],
+ ["UNAI LOPEZ","MF",63,30],["VALENTIN","MF",62,31],["CISS","MF",63,32],["DE FRUTOS","MF",64,29],["NTEKA","MF",62,28],
+ ["ISI PALAZON","FW",67,31],["CAMELLO","FW",64,25],["DE TOMAS","FW",63,31],["ALEMAO","FW",60,28]]},
+{n:"GIRONA",c:"GIR",str:64,p:[["GAZZANIGA","GK",65,34],["KRAPYVTSOV","GK",56,21],
+ ["FRANCES","DF",63,23],["LOPEZ D","DF",62,36],["MORENO A","DF",64,33],["MARTINEZ ARNAU","DF",63,23],["YAAKOBISHVILI","DF",57,21],
+ ["IVAN MARTIN","MF",65,27],["OUNAHI","MF",65,26],["VAN DE BEEK","MF",64,29],["BELTRAN F","MF",62,27],["MISEHOUY","MF",58,20],
+ ["TSYGANKOV","FW",67,28],["STUANI","FW",63,39],["ASPRILLA","FW",63,22],["VANAT","FW",62,24]]},
+{n:"GETAFE",c:"GET",str:63,p:[["SORIA","GK",62,33],["LETACEK","GK",56,27],
+ ["DJENE","DF",63,34],["ABQAR","DF",61,27],["FEMENIA","DF",60,35],["BERROCAL","DF",58,27],["BOSELLI","DF",56,22],
+ ["MARTIN GETAFE","MF",60,22],["NEYOU","MF",61,29],["MUNOZ GETAFE","MF",60,31],["JUANMI","MF",63,33],["DA COSTA","MF",58,23],
+ ["MAYORAL","FW",63,29],["UCHE","FW",62,23],["SATRIANO","FW",61,25],["FEDERICO","FW",58,23]]},
+{n:"VALENCIA",c:"VAL",str:63,p:[["DIMITRIEVSKI","GK",63,32],["RIVERO","GK",55,28],
+ ["GAYA","DF",64,31],["DIAKHABY","DF",62,29],["COPETE","DF",61,26],["TARREGA","DF",60,24],["FOULQUIER","DF",60,33],
+ ["PEPELU","MF",63,27],["SANTAMARIA","MF",61,31],["RODRIGUEZ J","MF",60,32],["GUERRA","MF",60,23],["UGRINIC","MF",59,27],
+ ["DANJUMA","FW",67,29],["CANOS","FW",62,29],["RIOJA","FW",60,32],["DURO","FW",58,26]]},
+{n:"ALAVES",c:"ALA",str:60,p:[["SIVERA","GK",61,29],["OWONO","GK",53,25],
+ ["DIARRA","DF",59,25],["MARAS","DF",60,30],["GARCES","DF",58,26],["PICA","DF",56,24],["TENAGLIA","DF",56,30],
+ ["BLANCO","MF",58,25],["GUEVARA","MF",59,28],["ALENA","MF",61,28],["PROTESONI","MF",57,28],["DIALLO A","MF",55,22],
+ ["REBBACH","FW",61,27],["BOYE","FW",58,30],["MARTINEZ ALA","FW",57,29],["PEREZ ALA","FW",54,24]]},
+{n:"ESPANYOL",c:"ESP",str:58,p:[["DMITROVIC","GK",60,34],["FORTUNO","GK",50,24],
+ ["CABRERA ESP","DF",57,35],["RUBIO ESP","DF",56,28],["RAMON","DF",56,25],["SALINAS","DF",54,25],["HINOJO","DF",52,21],
+ ["EXPOSITO","MF",58,29],["GRAGERA","MF",56,26],["LOZANO ESP","MF",55,26],["CALATRAVA","MF",54,26],["SMITH ESP","MF",53,23],
+ ["PUADO","FW",59,28],["MILLA","FW",56,33],["CARRERAS ESP","FW",54,25],["ROCA ESP","FW",52,23]]},
+{n:"ELCHE",c:"ELC",str:54,p:[["ITURBE","GK",53,22],["DITURO","GK",50,39],
+ ["AFFENGRUBER","DF",54,25],["CHUST","DF",55,26],["DONALD","DF",52,25],["BIGAS","DF",52,36],["DIABY B","DF",51,28],
+ ["VILLAR G","MF",56,28],["AGUADO","MF",53,26],["REDONDO F","MF",52,23],["TETE MORENTE","MF",54,29],["VALERA","MF",51,24],
+ ["RODRIGUEZ ALVARO","FW",53,21],["DIANGANA","FW",54,28],["CEPEDA L","FW",50,23],["OSORIO ABIEL","FW",48,24]]},
+{n:"LEVANTE",c:"LEV",str:52,p:[["CAMPOS PABLO","GK",51,24],["MARTIN DANI","GK",44,20],
+ ["TOLJAN","DF",52,31],["DELA","DF",50,27],["GARCIA VICTOR","DF",49,28],["ELGEZABAL","DF",48,33],["CABELLO","DF",46,22],
+ ["ARRIAGA","MF",51,28],["REY ORIOL","MF",50,28],["BARDELI","MF",49,25],["OLASAGASTI","MF",47,25],["BRUGUE","MF",46,29],
+ ["EYONG","FW",52,22],["ROMERO IVAN","FW",50,25],["ESPI","FW",46,20],["ABED","FW",44,21]]},
+{n:"REAL OVIEDO",c:"OVI",str:50,p:[["ESCANDELL","GK",50,30],["LEIRE","GK",42,24],
+ ["COSTAS","DF",50,31],["CALVO DANI","DF",49,32],["LUENGO OIER","DF",47,28],["VIDAL NACHO","DF",47,31],["ALHASSANE","DF",45,24],
+ ["DENDONCKER","MF",51,31],["ILIC LUKA","MF",49,27],["LACHHAB","MF",47,27],["REINA ALBERTO","MF",46,28],["AHMED AISAR","MF",44,25],
+ ["CHAIRA","FW",48,25],["GONZALEZ JACOBO","FW",47,29],["DOMINGUES BRANDON","FW",45,26],["SAENZ PABLO","FW",43,25]]},
 ];
-const EURO_SIZE=EURO_CLUBS.length;
-EURO_CLUBS.forEach(([n,c,str])=>TEAMS.push({n,c,str,p:[]}));
+const LALIGA_SIZE=LALIGA.length;
+LALIGA.forEach(t=>TEAMS.push(t));
+const LALIGA_END=TEAMS.length;
+
+const BUNDESLIGA=[
+{n:"BAYERN MUNICH",c:"BAY",str:93,p:[["NEUER","GK",84,40],["URBIG","GK",76,22],
+ ["UPAMECANO","DF",85,27],["TAH","DF",84,30],["KIM MIN-JAE","DF",83,29],["LAIMER","DF",81,29],["BOEY","DF",78,25],
+ ["KIMMICH","MF",88,31],["MUSIALA","MF",89,23],["PAVLOVIC","MF",80,22],["PALHINHA","MF",79,30],["GNABRY","MF",79,30],
+ ["KANE","FW",92,32],["OLISE","FW",86,24],["DIAZ L","FW",83,29],["SANE","FW",78,29]]},
+{n:"BAYER LEVERKUSEN",c:"B04",str:85,p:[["FLEKKEN","GK",78,33],["BLASWICH","GK",68,35],
+ ["TAPSOBA","DF",79,27],["QUANSAH","DF",77,23],["BADE","DF",73,26],["VAZQUEZ B04","DF",73,35],["ARTHUR B04","DF",70,23],
+ ["ANDRICH","MF",76,31],["PALACIOS","MF",78,27],["GARCIA B04","MF",77,29],["TILLMAN","MF",76,24],["TERRIER","MF",74,29],
+ ["SCHICK","FW",81,30],["BONIFACE","FW",80,25],["HOFMANN B04","FW",73,33],["TELLA","FW",72,27]]},
+{n:"BORUSSIA DORTMUND",c:"BVB",str:84,p:[["KOBEL","GK",84,28],["MEYER BVB","GK",68,35],
+ ["SCHLOTTERBECK","DF",81,26],["ANTON","DF",77,29],["BENSEBAINI","DF",76,31],["CAN","DF",76,32],["RYERSON","DF",75,28],
+ ["NMECHA","MF",76,25],["SABITZER","MF",78,32],["CHUKWUEMEKA","MF",74,22],["SVENSSON BVB","MF",70,24],["COUTO","MF",70,24],
+ ["GUIRASSY","FW",84,30],["ADEYEMI","FW",80,24],["BEIER","FW",76,23],["CAMPBELL BVB","FW",73,20]]},
+{n:"RB LEIPZIG",c:"RBL",str:82,p:[["VANDEVOORDT","GK",78,24],["GULACSI","GK",73,36],
+ ["LUKEBA","DF",80,23],["ORBAN","DF",78,33],["KLOSTERMANN","DF",75,30],["RAUM","DF",78,28],["HENRICHS","DF",74,29],
+ ["BAUMGARTNER","MF",78,26],["ELMAS","MF",77,26],["SEIWALD","MF",74,25],["VERMEEREN","MF",73,21],["GEERTRUIDA","MF",76,25],
+ ["NUSA","FW",78,21],["BAKAYOKO RBL","FW",73,23],["ROMULO","FW",72,24],["HARDER","FW",70,21]]},
+{n:"EINTRACHT FRANKFURT",c:"SGE",str:77,p:[["ZETTERER","GK",73,30],["SANTOS KAUA","GK",64,23],
+ ["KOCH ROBIN","DF",74,29],["THEATE","DF",72,26],["COLLINS N","DF",70,22],["AMENDA","DF",70,22],["NKOUNKOU","DF",68,25],
+ ["SKHIRI","MF",76,31],["LARSSON HUGO","MF",75,22],["CHAIBI","MF",72,23],["UZUN CAN","MF",73,20],["DINA EBIMBE","MF",70,25],
+ ["DOAN","FW",76,28],["BURKARDT","FW",75,25],["WAHI","FW",73,23],["KNAUFF","FW",70,24]]},
+{n:"VFB STUTTGART",c:"VFB",str:76,p:[["BREDLOW","GK",71,31],["FUNK","GK",62,30],
+ ["CHABOT","DF",73,28],["MITTELSTADT","DF",75,29],["ZAGADOU","DF",70,27],["STERGIOU","DF",71,24],["VAGNOMAN","DF",70,25],
+ ["STILLER","MF",78,25],["KARAZOR","MF",71,29],["EL KHANNOUSS","MF",72,22],["PROMEL","MF",68,31],["NARTEY","MF",67,26],
+ ["UNDAV","FW",78,29],["DEMIROVIC","FW",76,28],["FUHRICH","FW",73,28],["LEWELING","FW",71,25]]},
+{n:"SC FREIBURG",c:"SCF",str:72,p:[["ATUBOLU","GK",70,24],["MULLER FLORIAN","GK",63,28],
+ ["GINTER","DF",72,32],["LIENHART","DF",70,29],["GUNTER","DF",68,33],["ROSENFELDER","DF",65,23],["KUBLER","DF",65,33],
+ ["EGGESTEIN M","MF",70,29],["OSTERHAGE","MF",71,26],["MANZAMBI","MF",67,20],["YAMAMOTO SCF","MF",65,24],["JUNG A","MF",63,34],
+ ["GRIFO","FW",74,33],["HOLER","FW",68,31],["BESTE","FW",66,27],["MATANOVIC","FW",65,23]]},
+{n:"MONCHENGLADBACH",c:"BMG",str:69,p:[["NICOLAS","GK",68,28],["OLSCHOWSKY","GK",58,24],
+ ["ELVEDI","DF",70,29],["DIKS","DF",67,29],["SCALLY","DF",66,23],["KONOPLYA","DF",65,26],["HEROLD","DF",62,23],
+ ["NEUHAUS F","MF",68,29],["REYNA","MF",68,23],["HACK ROBIN","MF",64,27],["STOGER","MF",64,32],["HONORAT","MF",65,29],
+ ["KLEINDIENST","FW",69,30],["CVANCARA","FW",65,25],["MACHINO","FW",63,26],["NGOUMOU","FW",62,26]]},
+{n:"WERDER BREMEN",c:"SVW",str:67,p:[["HEIN JIRI","GK",65,24],["KOLKE","GK",56,35],
+ ["FRIEDL M","DF",66,28],["STARK","DF",64,31],["PIEPER","DF",63,28],["WEISER","DF",62,32],["AGU","DF",60,26],
+ ["STAGE","MF",64,29],["SCHMID N","MF",65,26],["LYNEN","MF",62,27],["STALMACH","MF",60,20],["ALVERO","MF",58,24],
+ ["GRULL","FW",66,27],["NJINMAH","FW",64,25],["ITTEN","FW",60,29],["KOWNACKI","FW",59,29]]},
+{n:"VFL WOLFSBURG",c:"WOB",str:67,p:[["GRABARA","GK",70,27],["MULLER MARIUS","GK",58,32],
+ ["VAVRO","DF",64,30],["JENZ","DF",63,27],["WAHL HAUKE","DF",61,32],["MAEHLE","DF",65,29],["ROGERIO","DF",60,28],
+ ["ARNOLD MAXIMILIAN","MF",65,32],["MAJER","MF",67,28],["SVANBERG","MF",63,27],["ERIKSEN CHRISTIAN","MF",68,34],["VRANCKX","MF",61,23],
+ ["AMOURA","FW",70,26],["GLATZEL","FW",63,32],["REESE FABIAN","FW",62,28],["SKOV OLSEN","FW",61,26]]},
+{n:"UNION BERLIN",c:"FCU",str:66,p:[["RONNOW","GK",65,33],["RAAB MATHEO","GK",56,27],
+ ["QUERFELD","DF",63,22],["NSOKI","DF",62,27],["FRIEDRICH MARVIN","DF",61,30],["JURANOVIC","DF",63,30],["TRIMMEL","DF",60,39],
+ ["SCHAFER ANDRAS","MF",63,27],["KHEDIRA RANI","MF",62,32],["HABERER","MF",61,32],["JEONG WOO-YEONG","MF",62,26],["SKOV ROBERT","MF",60,30],
+ ["SKARKE","FW",62,29],["BEDIA","FW",61,30],["BURKE OLIVER","FW",59,29],["ILIC ANDREJ","FW",58,26]]},
+{n:"FC AUGSBURG",c:"FCA",str:63,p:[["DAHMEN","GK",62,28],["LABROVIC","GK",53,26],
+ ["GOUWELEEUW","DF",62,34],["SCHLOTTERBECK KEVEN","DF",61,29],["GIANNOULIS","DF",60,30],["PEDERSEN MADS","DF",58,29],["WOLF MARIUS","DF",58,31],
+ ["JAKIC","MF",61,29],["KEITEL","MF",59,26],["RIEDER FABIAN","MF",62,24],["CLAUDE-MAURICE","MF",60,28],["SAAD ELIAS","MF",58,26],
+ ["GREGORITSCH","FW",63,32],["MOUNIE","FW",59,31],["RIBEIRO RODRIGO","FW",57,21],["KADE ANTON","FW",55,22]]},
+{n:"HOFFENHEIM",c:"TSG",str:65,p:[["BAUMANN","GK",65,35],["PHILIPP TSG","GK",55,24],
+ ["HAJDARI","DF",62,22],["KABAK","DF",63,25],["HRANAC","DF",61,25],["MACHIDA","DF",60,27],["GENDREY","DF",60,25],
+ ["AVDULLAHU","MF",60,21],["BURGER TSG","MF",58,24],["GEIGER TSG","MF",61,27],["PRASS","MF",59,24],["TOHUMCU","MF",58,20],
+ ["KRAMARIC","FW",65,34],["WIMMER TSG","FW",60,24],["HLOZEK","FW",61,22],["TABAKOVIC","FW",57,31]]},
+{n:"FC HEIDENHEIM",c:"FCH",str:58,p:[["MULLER FCH","GK",58,34],["TSCHERNUTH","GK",48,23],
+ ["MAINKA","DF",57,30],["SIERSLEBEN","DF",55,25],["GIMBER","DF",56,28],["FOHRENBACH","DF",54,29],["PACARADA","DF",53,30],
+ ["DORSCH","MF",56,27],["HONSAK","MF",55,28],["BECK FCH","MF",54,28],["NIEHUES","MF",52,24],["CONTEH C","MF",52,25],
+ ["PIERINGER","FW",57,25],["KAUFMANN FCH","FW",53,24],["ZIVZIVADZE","FW",54,31],["BREUNIG","FW",51,24]]},
+{n:"FC ST PAULI",c:"STP",str:56,p:[["VOLL","GK",56,24],["SPARI","GK",46,23],
+ ["SMITH STP","DF",55,28],["MATHISEN","DF",54,29],["RITZKA","DF",53,27],["SALIAKAS","DF",52,28],["ANDO STP","DF",51,26],
+ ["FUJITA STP","MF",52,23],["IRVINE STP","MF",55,32],["METCALFE STP","MF",51,25],["PEREIRA LAGE","MF",51,28],["BANKS STP","MF",49,23],
+ ["KAARS","FW",56,26],["JONES STP","FW",50,22],["CEESAY","FW",49,21],["HARA STP","FW",48,26]]},
+{n:"HAMBURGER SV",c:"HSV",str:55,p:[["HEUER FERNANDES","GK",54,32],["TANGVIK","GK",44,22],
+ ["CAPALDO","DF",54,26],["OMARI HSV","DF",53,25],["TORUNARIGHA","DF",52,27],["ELFADLI","DF",51,28],["MUHEIM","DF",52,27],
+ ["REMBERG","MF",51,25],["LOKONGA HSV","MF",52,25],["GRONBAEK","MF",50,24],["PHERAI","MF",50,24],["AMOAKO HSV","MF",47,20],
+ ["POULSEN HSV","FW",54,31],["DOMPE","FW",51,29],["PHILIPPE HSV","FW",49,24],["JATTA","FW",48,27]]},
+{n:"FC KOLN",c:"KOE",str:57,p:[["SCHWABE","GK",57,30],["ZIELER","GK",48,36],
+ ["LOCHOSHVILI","DF",55,27],["HUBERS","DF",54,28],["SCHMIED KOE","DF",52,26],["SEBULONSEN","DF",51,25],["GAZIBEGOVIC","DF",50,25],
+ ["KRAUSS","MF",53,24],["JOHANNESSON","MF",50,22],["CASTRO-MONTES","MF",52,28],["CARSTENSEN","MF",50,24],["KUJOVIC","MF",47,20],
+ ["THIELMANN","FW",55,23],["MAINA","FW",51,26],["WALDSCHMIDT","FW",54,29],["ACHE","FW",50,26]]},
+{n:"VFL BOCHUM",c:"BOC",str:56,p:[["HORN MANUEL","GK",55,32],["THIEDE","GK",46,26],
+ ["STROMPF","DF",54,27],["WITTEK","DF",53,29],["MBOM","DF",51,25],["OLSEN BOC","DF",50,24],["RAKNEBERG","DF",49,23],
+ ["MIYOSHI","MF",52,28],["COKAJ","MF",50,26],["KWARTENG BOC","MF",50,27],["TAZ","MF",48,26],["JASHARI BOC","MF",50,19],
+ ["HOLTMANN","FW",56,30],["HOFMANN LUKAS","FW",57,32],["SISSOKO BOC","FW",52,29],["DRAKAS","FW",48,22]]},
+];
+const BUNDESLIGA_SIZE=BUNDESLIGA.length;
+BUNDESLIGA.forEach(t=>TEAMS.push(t));
+const BUNDESLIGA_END=TEAMS.length;
+
+const SERIEA=[
+{n:"INTER MILAN",c:"INT",str:90,p:[["MARTINEZ JOSEP","GK",81,28],["DI GENNARO","GK",65,32],
+ ["BASTONI","DF",87,27],["AKANJI","DF",82,30],["PAVARD","DF",81,30],["DIMARCO","DF",84,28],["DUMFRIES","DF",83,30],
+ ["CALHANOGLU","MF",85,32],["BARELLA","MF",86,29],["MKHITARYAN","MF",78,37],["FRATTESI","MF",80,26],["ASLLANI","MF",73,24],
+ ["LAUTARO MARTINEZ","FW",89,28],["THURAM M","FW",86,28],["ESPOSITO PIO","FW",74,21],["BONNY","FW",73,22]]},
+{n:"NAPOLI",c:"NAP",str:87,p:[["MILINKOVIC-SAVIC","GK",78,29],["MERET","GK",75,29],
+ ["BUONGIORNO","DF",82,27],["RRAHMANI","DF",80,32],["BEUKEMA","DF",78,27],["DI LORENZO","DF",81,32],["OLIVERA","DF",76,28],
+ ["MCTOMINAY","MF",83,29],["ANGUISSA","MF",80,30],["LOBOTKA","MF",81,31],["DE BRUYNE","MF",85,35],["GILMOUR","MF",75,25],
+ ["LUKAKU","FW",83,33],["NERES","FW",81,29],["HOJLUND","FW",78,23],["POLITANO","FW",78,32]]},
+{n:"AC MILAN",c:"ACM",str:85,p:[["MAIGNAN","GK",83,31],["TERRACCIANO P","GK",63,36],
+ ["TOMORI","DF",80,28],["PAVLOVIC ACM","DF",76,25],["GABBIA","DF",76,26],["ESTUPINAN","DF",76,28],["DE WINTER","DF",74,24],
+ ["MODRIC","MF",84,40],["FOFANA ACM","MF",78,27],["RABIOT","MF",80,31],["RICCI ACM","MF",77,24],["LOFTUS-CHEEK","MF",76,30],
+ ["LEAO","FW",85,27],["PULISIC","FW",81,27],["NKUNKU","FW",79,28],["GIMENEZ SANTIAGO","FW",76,25]]},
+{n:"JUVENTUS",c:"JUV",str:84,p:[["DI GREGORIO","GK",80,28],["PERIN","GK",68,33],
+ ["BREMER","DF",83,29],["KALULU","DF",78,26],["GATTI","DF",78,28],["CAMBIASO","DF",81,26],["KELLY JUV","DF",74,27],
+ ["LOCATELLI","MF",79,28],["KOOPMEINERS","MF",80,28],["THURAM K","MF",76,25],["MCKENNIE","MF",75,27],["DOUGLAS LUIZ","MF",76,28],
+ ["YILDIZ","FW",82,21],["VLAHOVIC","FW",81,26],["CONCEICAO F","FW",76,23],["OPENDA","FW",76,26]]},
+{n:"ATALANTA",c:"ATA",str:82,p:[["CARNESECCHI","GK",80,26],["SPORTIELLO","GK",65,34],
+ ["SCALVINI","DF",81,22],["HIEN","DF",77,27],["DJIMSITI","DF",75,33],["BELLANOVA","DF",76,26],["ZAPPACOSTA","DF",73,34],
+ ["DE ROON","MF",76,35],["EDERSON ATA","MF",79,26],["PASALIC","MF",76,31],["DE KETELAERE","MF",80,25],["SAMARDZIC","MF",78,24],
+ ["RASPADORI","FW",79,26],["KRSTOVIC","FW",76,26],["SCAMACCA","FW",78,27],["LOOKMAN","FW",81,27]]},
+{n:"AS ROMA",c:"ROM",str:79,p:[["SVILAR","GK",78,26],["VASQUEZ ROM","GK",64,28],
+ ["NDICKA","DF",77,26],["MANCINI ROM","DF",77,30],["HERMOSO","DF",74,31],["ANGELINO","DF",73,29],["WESLEY ROM","DF",71,22],
+ ["CRISTANTE","MF",76,31],["KONE MANU","MF",76,25],["EL AYNAOUI","MF",73,25],["PISILLI","MF",68,21],["PELLEGRINI LORENZO","MF",78,29],
+ ["DOVBYK","FW",78,29],["SOULE","FW",77,23],["MALEN","FW",76,27],["CHERUBINI ROM","FW",68,22]]},
+{n:"LAZIO",c:"LAZ",str:76,p:[["PROVEDEL","GK",75,32],["MANDAS","GK",68,24],
+ ["GILA","DF",76,25],["ROMAGNOLI","DF",76,31],["PATRIC","DF",71,33],["MARUSIC","DF",72,33],["PELLEGRINI TAVARES","DF",72,26],
+ ["ROVELLA","MF",76,24],["CATALDI","MF",71,31],["DELE-BASHIRU","MF",73,25],["BELAHYANE","MF",70,22],["VECINO LAZ","MF",70,30],
+ ["ZACCAGNI","FW",78,31],["ISAKSEN","FW",75,25],["DIA LAZ","FW",73,29],["NOSLIN","FW",70,26]]},
+{n:"FIORENTINA",c:"FIO",str:74,p:[["DE GEA","GK",78,35],["CHRISTENSEN OLIVER","GK",65,27],
+ ["COMUZZO","DF",73,21],["PONGRACIC","DF",72,28],["RANIERI LUCA","DF",72,27],["DODO FIO","DF",73,27],["PARISI FABIANO","DF",70,25],
+ ["MANDRAGORA","MF",73,29],["FAGIOLI","MF",75,25],["SOHM","MF",71,25],["BRESCIANINI","MF",72,26],["GOSENS","MF",70,32],
+ ["KEAN","FW",78,26],["GUDMUNDSSON ALBERT","FW",75,29],["PICCOLI ROBERTO","FW",71,25],["NZOLA","FW",68,29]]},
+{n:"BOLOGNA",c:"BOG",str:74,p:[["SKORUPSKI","GK",73,35],["RAVAGLIA","GK",62,26],
+ ["LUCUMI","DF",75,28],["POSCH BOG","DF",73,29],["CASALE","DF",71,28],["MIRANDA BOG","DF",68,26],["HOLM BOG","DF",70,26],
+ ["FREULER","MF",75,34],["FERGUSON BOG","MF",74,26],["FABBIAN BOG","MF",70,23],["MORO BOG","MF",68,28],["ODGAARD","MF",73,27],
+ ["ORSOLINI","FW",76,29],["CASTRO SAMUEL","FW",68,21],["DALLINGA","FW",70,25],["IMMOBILE","FW",73,36]]},
+{n:"TORINO",c:"TOR",str:66,p:[["ISRAEL","GK",67,26],["PALEARI","GK",56,33],
+ ["COCO TOR","DF",68,27],["MARIPAN","DF",67,32],["BIRAGHI","DF",66,33],["ISMAJLI","DF",65,29],["PEDERSEN TOR","DF",64,25],
+ ["VLASIC TOR","MF",70,28],["CASADEI","MF",65,23],["ILIC TOR","MF",64,25],["ASLLANI TOR","MF",63,24],["NGONGE TOR","MF",65,26],
+ ["SIMEONE TOR","FW",69,30],["ADAMS TOR","FW",67,29],["ZAPATA TOR","FW",65,35],["ABOUKHLAL","FW",63,26]]},
+{n:"UDINESE",c:"UDI",str:64,p:[["OKOYE","GK",64,26],["SAVA","GK",54,24],
+ ["SOLET","DF",65,26],["KABASELE","DF",62,35],["KRISTENSEN UDI","DF",62,24],["ZEMURA","DF",60,26],["EHIZIBUE","DF",59,31],
+ ["LOVRIC","MF",63,28],["KARLSTROM","MF",62,31],["ZARRAGA","MF",61,27],["EKKELENKAMP","MF",60,26],["PIOTROWSKI UDI","MF",60,28],
+ ["ZANIOLO","FW",65,26],["BUKSA","FW",61,29],["DAVIS UDI","FW",60,28],["BRENNER","FW",60,26]]},
+{n:"GENOA",c:"GEN",str:63,p:[["LEALI","GK",63,33],["BIJLOW","GK",54,28],
+ ["OSTIGARD","DF",64,26],["VASQUEZ GEN","DF",63,27],["MARTIN GEN","DF",62,29],["MARCANDALLI","DF",57,23],["SABELLI","DF",57,33],
+ ["FRENDRUP","MF",63,25],["ONANA GEN","MF",62,26],["MALINOVSKYI","MF",61,33],["MASINI","MF",59,25],["BALDANZI","MF",62,23],
+ ["VITINHA GEN","FW",62,26],["COLOMBO GEN","FW",59,24],["EKUBAN","FW",58,32],["CORNET","FW",57,29]]},
+{n:"COMO",c:"COM",str:63,p:[["AUDERO","GK",64,29],["BUTEZ","GK",60,31],
+ ["POSCH COM","DF",63,29],["KEMPF","DF",60,31],["DOSSENA","DF",60,27],["VALLE","DF",57,22],["SMOLCIC","DF",57,25],
+ ["PERRONE","MF",62,23],["CAQUERET","MF",64,26],["DA CUNHA","MF",63,25],["BATURINA","MF",63,23],["MAZZITELLI","MF",58,30],
+ ["MORATA","FW",68,33],["DOUVIKAS","FW",62,26],["KUHN COM","FW",61,26],["FADERA","FW",57,24]]},
+{n:"CAGLIARI",c:"CAG",str:61,p:[["CAPRILE","GK",61,24],["SHERRI","GK",52,28],
+ ["MINA","DF",62,31],["WIETESKA","DF",58,29],["ZAPPA","DF",58,26],["OBERT","DF",56,23],["RODRIGUEZ CAG","DF",55,21],
+ ["GAETANO","MF",61,26],["ADOPO","MF",57,25],["PRATI","MF",57,22],["DEIOLA","MF",55,30],["CAVUOTI","MF",52,23],
+ ["LUVUMBO","FW",62,24],["BORRELLI CAG","FW",57,26],["ESPOSITO SEBASTIANO","FW",56,24],["FELICI","FW",54,25]]},
+{n:"HELLAS VERONA",c:"HEL",str:58,p:[["MONTIPO","GK",58,30],["TONIOLO","GK",48,22],
+ ["FRESE","DF",57,28],["BRADARIC","DF",56,26],["BELGHALI","DF",54,24],["OYEGOKE","DF",52,23],["CALABRESE HEL","DF",52,21],
+ ["SERDAR","MF",57,29],["HARROUI","MF",56,28],["KASTANOS","MF",56,28],["SUSLOV","MF",57,24],["NIASSE","MF",54,26],
+ ["SARR HEL","FW",56,25],["MOSQUERA","FW",57,26],["LIVRAMENTO HEL","FW",53,25],["CRUZ HEL","FW",52,26]]},
+{n:"PARMA",c:"PAR",str:60,p:[["SUZUKI ZION","GK",60,23],["CORVI","GK",50,25],
+ ["CIRCATI","DF",59,22],["VALENTI LAUTARO","DF",57,27],["BALOGH","DF",56,24],["DELPRATO","DF",56,26],["VALERI","DF",55,27],
+ ["BERNABE","MF",60,25],["KEITA MANDELA","MF",57,24],["SORENSEN OLIVER","MF",56,24],["ORDONEZ","MF",54,21],["NICOLUSSI CAVIGLIA","MF",55,26],
+ ["PELLEGRINO MATEO","FW",57,24],["FRIGAN","FW",54,23],["BENEDYCZAK","FW",53,25],["ALMQVIST","FW",54,26]]},
+{n:"LECCE",c:"LEC",str:58,p:[["FALCONE","GK",58,31],["FRUCHTL","GK",50,26],
+ ["GASPAR","DF",56,28],["JEAN LEC","DF",55,26],["GALLO LEC","DF",54,26],["NDABA","DF",53,26],["VEIGA LEC","DF",52,23],
+ ["RAMADANI","MF",58,30],["COULIBALY LEC","MF",56,30],["MALEH","MF",55,27],["SALA LEC","MF",53,25],["KABA LEC","MF",52,24],
+ ["BANDA","FW",58,25],["STULIC","FW",55,24],["PIEROTTI","FW",53,25],["N DRI","FW",52,25]]},
+{n:"SASSUOLO",c:"SAS",str:60,p:[["MURIC","GK",59,27],["TURATI","GK",52,24],
+ ["IDZES","DF",59,26],["WALUKIEWICZ","DF",57,26],["MUHAREMOVIC","DF",56,23],["DOIG","DF",56,24],["CANDE","DF",54,28],
+ ["BOLOCA","MF",59,27],["THORSTVEDT","MF",58,27],["KONE ISMAEL","MF",57,24],["MATIC","MF",55,37],["GHION","MF",53,26],
+ ["BERARDI","FW",63,31],["PINAMONTI","FW",61,27],["LAURIENTE","FW",59,27],["MULATTIERI","FW",56,25]]},
+{n:"PISA",c:"PIS",str:53,p:[["SEMPER","GK",53,28],["SCUFFET","GK",47,30],
+ ["CANESTRELLI","DF",52,25],["CALABRESI PIS","DF",50,30],["CARACCIOLO","DF",48,36],["COPPOLA PIS","DF",47,21],["BERUATTO","DF",47,27],
+ ["AEBISCHER","MF",54,29],["TOURE PIS","MF",50,28],["HOJHOLT","MF",50,25],["TRAMONI","MF",49,26],["VIGNATO","MF",48,25],
+ ["MORO PIS","FW",52,33],["DUROSINMI","FW",49,23],["MEISTER","FW",47,22],["STOJILKOVIC","FW",46,26]]},
+{n:"CREMONESE",c:"CRE",str:52,p:[["FULIGNATI","GK",52,31],["SARO","GK",46,26],
+ ["LUPERTO","DF",53,29],["BASCHIROTTO","DF",52,29],["BIANCHETTI","DF",50,33],["PEZZELLA CRE","DF",49,28],["SERNICOLA","DF",48,28],
+ ["GRASSI CRE","MF",51,31],["THORSBY","MF",51,30],["VANDEPUTTE","MF",50,30],["COLLOCOLO","MF",48,26],["PICKEL","MF",47,29],
+ ["BONAZZOLI","FW",53,29],["SANABRIA","FW",52,30],["DE LUCA CRE","FW",48,27],["DJURIC","FW",48,36]]},
+];
+const SERIEA_SIZE=SERIEA.length;
+SERIEA.forEach(t=>TEAMS.push(t));
+const SERIEA_END=TEAMS.length;
+
+const LIGUE1=[
+{n:"PARIS SG",c:"PSG",str:92,p:[["CHEVALIER","GK",81,24],["SAFONOV","GK",71,27],
+ ["PACHO","DF",83,24],["MARQUINHOS","DF",84,32],["HAKIMI","DF",85,27],["MENDES NUNO","DF",81,24],["ZABARNYI","DF",76,23],
+ ["VITINHA","MF",87,26],["ZAIRE-EMERY","MF",83,20],["JOAO NEVES","MF",83,21],["FABIAN RUIZ","MF",82,30],["SANCHES RENATO","MF",73,28],
+ ["DEMBELE O","FW",89,29],["DOUE","FW",84,21],["KVARATSKHELIA","FW",86,25],["BARCOLA","FW",83,23]]},
+{n:"MARSEILLE",c:"OM",str:80,p:[["RULLI","GK",78,34],["DE LANGE","GK",65,28],
+ ["BALERDI","DF",78,27],["AGUERD","DF",76,30],["MEDINA","DF",73,27],["EMERSON OM","DF",74,31],["EGAN-RILEY","DF",71,23],
+ ["HOJBJERG","MF",78,30],["KONDOGBIA","MF",73,33],["WEAH","MF",74,26],["HARIT","MF",73,29],["PAIXAO","MF",74,26],
+ ["AUBAMEYANG","FW",79,37],["GREENWOOD","FW",80,24],["GOUIRI","FW",76,26],["MAUPAY","FW",70,29]]},
+{n:"MONACO",c:"ASM",str:79,p:[["KOHN","GK",73,28],["MAJECKI","GK",63,26],
+ ["SALISU","DF",75,27],["KEHRER","DF",74,29],["DIER","DF",75,32],["VANDERSON","DF",76,25],["TEZE","DF",71,26],
+ ["ZAKARIA","MF",76,29],["GOLOVIN","MF",75,30],["CAMARA MONA","MF",71,22],["AKLIOUCHE","MF",78,24],["MINAMINO","MF",73,31],
+ ["BALOGUN","FW",77,25],["FATI","FW",76,23],["BIERETH","FW",73,23],["ILENIKHENA","FW",68,19]]},
+{n:"LILLE",c:"LIL",str:77,p:[["OZER","GK",71,26],["BODART","GK",62,28],
+ ["ALEXSANDRO","DF",75,26],["MBEMBA","DF",74,31],["MANDI","DF",71,34],["PERRAUD","DF",70,28],["TOURE LIL","DF",68,21],
+ ["BENTALEB","MF",73,31],["MUKAU","MF",76,21],["ANDRE","MF",71,35],["HARALDSSON","MF",70,23],["BOUADDI","MF",68,18],
+ ["GIROUD","FW",78,39],["MBAPPE ETHAN","FW",70,19],["SAHRAOUI","FW",75,25],["IGAMANE","FW",70,23]]},
+{n:"LYON",c:"OL",str:76,p:[["GREIF","GK",72,29],["TURNER MATT","GK",67,32],
+ ["NIAKHATE","DF",75,30],["CALETA-CAR","DF",73,29],["TAGLIAFICO","DF",72,33],["MAITLAND-NILES","DF",68,28],["MATA CLINTON","DF",68,33],
+ ["TOLISSO","MF",74,31],["MANGALA OREL","MF",73,28],["MORTON TYLER","MF",70,23],["AKOUOKOU","MF",68,28],["SULC","MF",71,25],
+ ["FOFANA MALICK","FW",76,21],["NUAMAH ERNEST","FW",73,22],["DURANVILLE","FW",68,20],["SATRIANO L","FW",65,25]]},
+{n:"NICE",c:"OGC",str:71,p:[["DIOUF","GK",69,26],["BOULHENDI","GK",58,25],
+ ["BOMBITO","DF",71,26],["VITI","DF",70,24],["NDAYISHIMIYE","DF",68,27],["BARD","DF",67,25],["ABDI","DF",65,32],
+ ["ABDUL SAMED","MF",68,26],["BOUDAOUI","MF",69,26],["SANSON","MF",67,31],["ABERGEL","MF",64,33],["CAMARA OGC","MF",63,21],
+ ["MOFFI","FW",75,27],["CARLOS ANTHONY","FW",68,25],["ORAKPO","FW",62,20],["LOUCHET","FW",62,23]]},
+{n:"LENS",c:"RCL",str:70,p:[["KOFFI","GK",68,29],["RISSER","GK",58,21],
+ ["GRADIT","DF",69,33],["UDOL","DF",65,30],["CHAVEZ RCL","DF",65,24],["ABDULHAMID","DF",64,26],["AGUILAR RCL","DF",63,33],
+ ["SANGARE RCL","MF",67,24],["HAIDARA","MF",68,28],["FULGINI","MF",67,29],["CUISANCE","MF",64,26],["DIALLO RCL","MF",61,20],
+ ["EDOUARD","FW",71,28],["THAUVIN","FW",70,33],["SIMA","FW",67,25],["SOTOCA","FW",64,35]]},
+{n:"RENNES",c:"SRE",str:68,p:[["SAMBA BRICE","GK",70,32],["LEMAITRE NICOLAS","GK",58,29],
+ ["BRASSIER","DF",68,26],["FAYE MIKAYIL","DF",66,21],["SEIDU","DF",64,26],["MERLIN QUENTIN","DF",65,24],["FRANKOWSKI","DF",64,31],
+ ["FOFANA SEKO","MF",68,31],["RONGIER","MF",67,31],["JAMES JORDAN","MF",65,22],["KAMARA GLEN","MF",64,30],["BLAS LUDOVIC","MF",65,28],
+ ["EMBOLO","FW",71,29],["LEPAUL","FW",67,26],["ZABIRI","FW",62,21],["SOUMARE ISSA","FW",61,25]]},
+{n:"STRASBOURG",c:"RCS",str:66,p:[["PENDERS","GK",65,19],["BAJIC","GK",58,23],
+ ["DOUKOURE RCS","DF",64,22],["OMOBAMIDELE","DF",64,24],["SOW RCS","DF",62,24],["CHILWELL","DF",65,29],["SYLLA RCS","DF",60,23],
+ ["ENCISO","MF",66,22],["BARCO RCS","MF",64,21],["SOUSA RCS","MF",60,20],["DIONG","MF",59,20],["MOREIRA RCS","MF",58,21],
+ ["PANICHELLI","FW",65,23],["MARA RCS","FW",60,23],["LUKOVIC RCS","FW",57,20],["NANASI","FW",58,24]]},
+{n:"TOULOUSE",c:"TFC",str:62,p:[["RESTES","GK",63,21],["NIFLORE","GK",50,19],
+ ["MCKENZIE TFC","DF",61,27],["NICOLAISEN","DF",62,29],["CRESSWELL TFC","DF",58,23],["ARADJ","DF",56,21],["MESSALI","DF",55,23],
+ ["CASSERES","MF",60,26],["FRANCIS TFC","MF",59,25],["SCHMIDT TFC","MF",58,28],["DONNUM","MF",57,28],["SAUER TFC","MF",55,22],
+ ["GBOHO","FW",61,25],["CISSOKO TFC","FW",57,23],["EMERSONN","FW",56,21],["HIDALGO TFC","FW",55,21]]},
+{n:"NANTES",c:"FCN",str:60,p:[["LAFONT","GK",62,27],["DUPE MAXIME","GK",52,33],
+ ["AWAZIEM","DF",59,29],["DUVERNE","DF",58,28],["AMIAN","DF",57,28],["CENTONZE","DF",56,30],["GUILBERT FREDERIC","DF",55,31],
+ ["LEPENANT","MF",61,23],["SISSOKO IBRAHIMA","MF",58,28],["DIACK LAMINE","MF",56,25],["GOMES MALANG","MF",54,21],["DEUFF","MF",53,20],
+ ["MOHAMED MOSTAFA","FW",59,28],["GANAGO","FW",57,27],["ABLINE","FW",57,23],["GUIRASSY HERBA","FW",50,19]]},
+{n:"AUXERRE",c:"AUX",str:58,p:[["LEON DONOVAN","GK",57,33],["DE PERCIN","GK",47,25],
+ ["DIOMANDE SINALY","DF",57,25],["OKOH","DF",55,23],["SIERRALTA","DF",55,29],["AGOUZOUL","DF",53,28],["SENAYA","DF",52,25],
+ ["OWUSU ELISHA","MF",56,28],["DIOUSSE","MF",55,28],["AHAMADA NAOUIROU","MF",54,24],["FAIVRE ROMAIN","MF",54,27],["PIEDFORT","MF",50,21],
+ ["SINAYOKO","FW",57,26],["BAIR THEO","FW",54,26],["ZOSSOU","FW",53,21],["NAMASO","FW",52,25]]},
+{n:"BREST",c:"BTS",str:60,p:[["COUDERT","GK",58,27],["POILLION","GK",46,18],
+ ["CHARDONNET","DF",57,31],["LOCKO","DF",56,24],["LALA BTS","DF",55,34],["BOURGAULT","DF",53,20],["ZOGBE","DF",51,21],
+ ["CHOTARD","MF",59,24],["TOUSART","MF",58,29],["MAGNETTI","MF",55,28],["DOUMBIA BTS","MF",53,23],["MBOUP BTS","MF",52,22],
+ ["AJORQUE","FW",59,32],["BALDE BTS","FW",57,30],["CAMBLAN","FW",52,22],["DEL CASTILLO","FW",51,30]]},
+{n:"LE HAVRE",c:"LEH",str:55,p:[["DIAW MORY","GK",56,33],["MPASI-NZAU","GK",47,31],
+ ["ZOUAOUI","DF",54,28],["DOUCOURE FODE","DF",53,25],["NEGO LOIC","DF",52,35],["SEKO AYUMU","DF",50,26],["KOFFI ENZO","DF",48,20],
+ ["NDIAYE RASSOUL","MF",52,24],["EBONOG","MF",51,21],["ZOHOURI","MF",49,19],["BENTOUMI","MF",48,20],["MOSENGO","MF",47,19],
+ ["MAMBIMBI","FW",54,25],["KYEREMEH GODSON","FW",52,26],["SAMATTA","FW",50,33],["LOGBO","FW",48,22]]},
+{n:"ANGERS",c:"ANG",str:54,p:[["LOPES ANTHONY","GK",56,35],["ZINGA MELVIN","GK",46,24],
+ ["LEFORT JORDAN","DF",53,32],["ARCUS","DF",52,30],["EKOMIE","DF",50,22],["SINATE","DF",48,20],["RAOLISOA","DF",48,26],
+ ["BELKEBLA","MF",53,32],["MOUTON LOUIS","MF",51,24],["SBAI AMINE","MF",50,25],["ALLEVINAH","MF",50,31],["BELKHDIM","MF",48,24],
+ ["SIMBAKOLI","FW",51,24],["MACHINE LANROY","FW",48,20],["PETER PROSPER","FW",47,18],["DJIBIRIN","FW",46,19]]},
+{n:"LORIENT",c:"FCL",str:55,p:[["MVOGO","GK",56,32],["KAMARA BINGOUROU","GK",47,29],
+ ["TALBI","DF",55,28],["MENDY FORMOSE","DF",54,25],["TOURE ISAAK","DF",53,23],["GEORGEN","DF",50,27],["ADJEI NATHANIEL","DF",49,23],
+ ["CADIOU NOAH","MF",52,27],["MAKENGO JEAN-VICTOR","MF",53,28],["LE BRIS THEO","MF",50,23],["KATSERIS","MF",49,25],["FADIGA BANDIOUGOU","MF",48,25],
+ ["PAGIS","FW",54,23],["BAMBA MOHAMED","FW",50,24],["TOSIN AIYEGUN","FW",49,28],["HATCHI","FW",47,21]]},
+{n:"METZ",c:"FCM",str:53,p:[["FISCHER JONATHAN","GK",52,24],["SY PAPE","GK",45,29],
+ ["SANE SADIBOU","DF",51,22],["GBAMIN","DF",52,30],["COLIN MAXIME","DF",50,34],["SARR BOUNA","DF",49,34],["MELIERES","DF",47,21],
+ ["DEMINGUET","MF",50,28],["HEIN GAUTHIER","MF",50,29],["TOURE ALPHA","MF",47,20],["BOKELE","MF",46,22],["NDUQUIDI","MF",45,21],
+ ["DIALLO HABIB","FW",54,31],["FALL PAPE MOUSSA","FW",48,22],["MANGONDO","FW",46,20],["SANE IBOU","FW",45,21]]},
+{n:"PARIS FC",c:"PFC",str:56,p:[["TRAPP","GK",58,35],["NKAMBADIO","GK",47,23],
+ ["OTAVIO PFC","DF",54,24],["MBOW","DF",53,26],["CHERGUI","DF",52,27],["DE SMET","DF",52,28],["TOURRAINE","DF",50,25],
+ ["LEES-MELOU","MF",56,33],["LOPEZ PFC","MF",54,28],["CAMARA PFC","MF",52,29],["DOUCET PFC","MF",50,23],["MARCHETTI PFC","MF",50,29],
+ ["IKONE","FW",57,28],["IMMOBILE CIRO","FW",56,36],["KRASSO","FW",52,28],["GEUBBELS","FW",50,24]]},
+];
+const LIGUE1_SIZE=LIGUE1.length;
+LIGUE1.forEach(t=>TEAMS.push(t));
+const LIGUE1_END=TEAMS.length;
+
 const N=TEAMS.length;
-const UCL_POOL=EURO_CLUBS.map((_,i)=>DIV2_SIZE+i).sort((a,b)=>TEAMS[b].str-TEAMS[a].str).slice(0,18);
-const UEL_POOL=EURO_CLUBS.map((_,i)=>DIV2_SIZE+i).sort((a,b)=>TEAMS[b].str-TEAMS[a].str).slice(18);
-const DIVNAME={1:'PREMIER LEAGUE',2:'CHAMPIONSHIP'};
-const DIVSIZE={1:DIV1_SIZE,2:CHAMP_SIZE};
+const DIVNAME={1:'PREMIER LEAGUE',2:'CHAMPIONSHIP',10:'LA LIGA',11:'BUNDESLIGA',12:'SERIE A',13:'LIGUE 1'};
+const DIVSIZE={1:DIV1_SIZE,2:CHAMP_SIZE,10:LALIGA_SIZE,11:BUNDESLIGA_SIZE,12:SERIEA_SIZE,13:LIGUE1_SIZE};
+function divOfIndex(i){
+  if(i<DIV1_SIZE)return 1;
+  if(i<DIV2_SIZE)return 2;
+  if(i<LALIGA_END)return 10;
+  if(i<BUNDESLIGA_END)return 11;
+  if(i<SERIEA_END)return 12;
+  return 13;
+}
 
 const FLAVOR=["CORNER TO {T}","{P} SHOOTS JUST WIDE","GREAT SAVE DENIES {P}","{P} BOOKED",
  "{P} HEADER OVER THE BAR","FREE KICK TO {T}, GOOD AREA","{P} SKIES IT FROM SIX YARDS",
@@ -367,7 +688,7 @@ function spacedFractions(count){
 function buildSchedule(euro){
   const seasonLen=DIVSIZE[myDiv()]*2-2;
   const withPos=[];
-  spacedFractions(6).forEach(pos=>withPos.push({e:{t:'C'},pos}));
+  if(myDiv()===1||myDiv()===2)spacedFractions(6).forEach(pos=>withPos.push({e:{t:'C'},pos}));
   if(euro){
     spacedFractions(8).forEach(pos=>withPos.push({e:{t:'E',stage:'LEAGUE'},pos:pos*0.75}));
     withPos.push({e:{t:'E',stage:'PLAYOFF'},pos:0.80});
@@ -387,7 +708,7 @@ function buildSchedule(euro){
   return schedule;
 }
 function initCup(){
-  const pool=divTeams(1).concat(divTeams(2));
+  const pool=divTeams(1).concat(divTeams(2)); // domestic cup — England only
   return {alive:pool,round:0,ties:null,bye:null,out:false,winner:null,hist:[]};
 }
 function divTeams(d){
@@ -396,7 +717,16 @@ function divTeams(d){
   return out;
 }
 function myDiv(){return state.div[state.teamIdx];}
-function otherDiv(){return myDiv()===1?2:1;}
+function allDivIds(){return Object.keys(DIVSIZE).map(Number);}
+function otherDivs(){return allDivIds().filter(d=>d!==myDiv());}
+function allClubIdxs(){return allDivIds().flatMap(d=>divTeams(d));}
+const TOPFLIGHT_DIVS=[1,10,11,12,13]; // top division of each modelled country — Europe qualifies from these
+function euroPool(comp){
+  const pool=TOPFLIGHT_DIVS.flatMap(d=>divTeams(d)).filter(i=>i!==state.teamIdx);
+  const sorted=[...pool].sort((a,b)=>TEAMS[b].str-TEAMS[a].str);
+  const cut=Math.ceil(sorted.length/2);
+  return comp==='UCL'?sorted.slice(0,cut):sorted.slice(cut);
+}
 function genSquad(str,euro){
   const surnames=euro?EURO_SUR:YSUR;
   const out=[];
@@ -412,9 +742,9 @@ function genSquad(str,euro){
   return out;
 }
 function ensureSquadData(){
-  // Championship clubs (DIV1_SIZE..DIV2_SIZE) already carry real 2025/26 rosters.
-  // Only European opponents get procedurally generated squads, refreshed each new career.
-  for(let i=DIV2_SIZE;i<N;i++)TEAMS[i].p=genSquad(TEAMS[i].str,true);
+  // Clubs with real researched rosters already have TEAMS[i].p populated — leave them alone.
+  // Anything still empty (not yet researched) gets a procedurally generated placeholder squad.
+  for(let i=DIV2_SIZE;i<N;i++)if(!TEAMS[i].p.length)TEAMS[i].p=genSquad(TEAMS[i].str,true);
 }
 function simRoundInstant(pairs){
   return pairs.map(([h,a])=>{
@@ -427,18 +757,21 @@ function simRoundInstant(pairs){
     return {h,a,hs,as};
   });
 }
-function finishOtherDivision(){
-  const od=otherDiv(),total=DIVSIZE[od]*2-2,fx=state.fx[od];
-  while(state.res[od].length<total)state.res[od].push(simRoundInstant(fx[state.res[od].length]));
+function finishOtherDivisions(){
+  otherDivs().forEach(od=>{
+    const total=DIVSIZE[od]*2-2,fx=state.fx[od];
+    while(state.res[od].length<total)state.res[od].push(simRoundInstant(fx[state.res[od].length]));
+  });
 }
-function syncOtherDivision(){
-  const od=otherDiv(),my=myDiv();
-  const total=DIVSIZE[my]*2-2,otherTotal=DIVSIZE[od]*2-2;
-  const myDone=state.res[my].length;
-  const target=Math.round(otherTotal*(myDone/total));
-  const fx=state.fx[od];
-  while(state.res[od].length<target&&state.res[od].length<otherTotal)
-    state.res[od].push(simRoundInstant(fx[state.res[od].length]));
+function syncOtherDivisions(){
+  const my=myDiv(),total=DIVSIZE[my]*2-2,myDone=state.res[my].length;
+  otherDivs().forEach(od=>{
+    const otherTotal=DIVSIZE[od]*2-2;
+    const target=Math.round(otherTotal*(myDone/total));
+    const fx=state.fx[od];
+    while(state.res[od].length<target&&state.res[od].length<otherTotal)
+      state.res[od].push(simRoundInstant(fx[state.res[od].length]));
+  });
 }
 function singleMatchWinner(a,b){
   const r=simRoundInstant([[a,b]])[0];
@@ -448,18 +781,18 @@ function singleMatchWinner(a,b){
 function clubBudget(t){return Math.max(5,Math.round((TEAMS[t].str-55)*3+15));}
 function newGame(teamIdx){
   ensureSquadData();
-  const div=teamIdx<DIV1_SIZE?1:2;
-  state={v:10,teamIdx,season:1,tactic:'BAL',speed:'x2',formation:'442',
+  const div=divOfIndex(teamIdx);
+  state={v:11,teamIdx,season:1,tactic:'BAL',speed:'x2',formation:'442',
     budget:clubBudget(teamIdx),market:[],
-    div:TEAMS.map((_,i)=>i<DIV1_SIZE?1:i<DIV2_SIZE?2:3),
+    div:TEAMS.map((_,i)=>divOfIndex(i)),
     sp:0,cup:null,conf:60,news:[],sacked:false,
-    rep:div===1?30:15,offer:null,honours:[],snd:true,euro:null,lineup:[],rejected:{},
+    rep:TOPFLIGHT_DIVS.includes(div)?30:15,offer:null,honours:[],snd:true,euro:null,lineup:[],rejected:{},
     freeAgents:[],target:null,tots:[],loans:{out:[]},hof:{},
     facilities:{stadium:1,training:1,youth:1},career:{p:0,w:0,d:0,l:0,gf:0,ga:0},
     squads:TEAMS.map(t=>t.p.map(([name,pos,rat,age])=>
       ({name,pos,rat,form:0,goals:0,assists:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)})))};
-  state.fx={1:genFixtures(divTeams(1)),2:genFixtures(divTeams(2))};
-  state.res={1:[],2:[]};
+  state.fx={};state.res={};
+  allDivIds().forEach(d=>{state.fx[d]=genFixtures(divTeams(d));state.res[d]=[];});
   state.cup=initCup();
   state.schedule=buildSchedule(false);
   state.target=computeTarget();
@@ -472,12 +805,12 @@ function goldenBoot(){
   return best||'-';
 }
 function computeTarget(){
-  const div=myDiv(),rivals=divTeams(div),sz=DIVSIZE[div];
+  const div=myDiv(),rivals=divTeams(div),sz=DIVSIZE[div],top=TOPFLIGHT_DIVS.includes(div);
   const rank=1+rivals.filter(i=>TEAMS[i].str>TEAMS[state.teamIdx].str).length;
-  if(rank<=Math.ceil(sz*0.15))return{label:div===1?'WIN THE TITLE':'WIN PROMOTION',max:div===1?3:6};
-  if(rank<=Math.ceil(sz*0.4))return{label:div===1?'EUROPEAN FOOTBALL':'PUSH FOR THE PLAY-OFFS',max:div===1?7:10};
+  if(rank<=Math.ceil(sz*0.15))return{label:top?'WIN THE TITLE':'WIN PROMOTION',max:top?3:6};
+  if(rank<=Math.ceil(sz*0.4))return{label:top?'EUROPEAN FOOTBALL':'PUSH FOR THE PLAY-OFFS',max:top?7:10};
   if(rank<=Math.ceil(sz*0.75))return{label:'A MID-TABLE FINISH',max:Math.ceil(sz*0.75)};
-  return{label:'AVOID RELEGATION',max:sz-3};
+  return{label:top?'A LOWER-MID FINISH':'AVOID RELEGATION',max:top?sz:sz-3};
 }
 function computeTOTS(div){
   const pool=divTeams(div),cands=[];
@@ -511,7 +844,7 @@ function signFreeAgent(idx){
 }
 function rivalManagerNews(){
   if(Math.random()>=0.03)return;
-  const pool=divTeams(1).concat(divTeams(2)).filter(i=>i!==state.teamIdx);
+  const pool=allClubIdxs().filter(i=>i!==state.teamIdx);
   addNews(TEAMS[pick(pool)].n+' SACK THEIR MANAGER');
 }
 function internationalNews(){
@@ -530,7 +863,7 @@ function newSeason(){
   const wasDiv=myDiv(),pos=myPos(wasDiv),wonCup=state.cup.winner===state.teamIdx;
   state.news=[];
   let qualifiesEuro=null;
-  if(wasDiv===1){
+  if(TOPFLIGHT_DIVS.includes(wasDiv)){
     if(pos<=4)qualifiesEuro='UCL';
     else if(pos===5||(wonCup&&pos<=8))qualifiesEuro='UEL';
   }
@@ -551,7 +884,7 @@ function newSeason(){
   state.season++;state.offer=null;
 
   // ---- resolve the pyramid: promotion & relegation for both divisions ----
-  finishOtherDivision();
+  finishOtherDivisions();
   const d1tab=table(1),d2tab=table(2);
   // Community Shield: last season's champions vs cup winners, curtain-raiser for the new season
   const champ1=d1tab[0].i,cupWinner=state.cup.winner;
@@ -643,14 +976,14 @@ function newSeason(){
     save();go(300);return;
   }
 
-  state.fx={1:genFixtures(divTeams(1)),2:genFixtures(divTeams(2))};
-  state.res={1:[],2:[]};
+  state.fx={};state.res={};
+  allDivIds().forEach(d=>{state.fx[d]=genFixtures(divTeams(d));state.res[d]=[];});
   state.cup=initCup();
   state.target=computeTarget();
   addNews('BOARD TARGET THIS SEASON: '+state.target.label);
 
   if(qualifiesEuro){
-    const pool=qualifiesEuro==='UCL'?UCL_POOL:UEL_POOL;
+    const pool=euroPool(qualifiesEuro);
     const opponents=[...pool].sort(()=>Math.random()-.5).slice(0,8);
     state.euro={comp:qualifiesEuro,opponents,played:[],pts:0,stage:'LEAGUE',
       direct:false,eliminated:false,koOpp:null,koHome:false,result:null};
@@ -667,7 +1000,7 @@ function newSeason(){
 function resetAll(){localStorage.removeItem('teleboss_pl');state=null;live=null;go(300);}
 function save(){try{localStorage.setItem('teleboss_pl',JSON.stringify(state));}catch(e){}}
 function loadGame(){
-  try{const s=JSON.parse(localStorage.getItem('teleboss_pl'));if(s&&s.v===10)state=s;}catch(e){}
+  try{const s=JSON.parse(localStorage.getItem('teleboss_pl'));if(s&&s.v===11)state=s;}catch(e){}
 }
 function manualSave(){
   save();
@@ -811,7 +1144,7 @@ function windowOpen(){return windowInfo().open;}
 let marketClub=null,scoutDiv=null,classPage=0,marketPage=0,loanMarketPage=0;
 function allListedPlayers(){
   const out=[];
-  divTeams(1).concat(divTeams(2)).forEach(t=>{
+  allClubIdxs().forEach(t=>{
     if(t===state.teamIdx)return;
     state.squads[t].forEach((p,idx)=>{if(p.listed)out.push({t,idx,p});});
   });
@@ -820,7 +1153,7 @@ function allListedPlayers(){
 }
 function clubAppeal(t){
   const d=state.div[t];
-  let a=TEAMS[t].str+(d===1?15:0);
+  let a=TEAMS[t].str+(TOPFLIGHT_DIVS.includes(d)?15:0);
   const pos=table(d).findIndex(r=>r.i===t)+1;
   if(pos>0)a+=clamp(10-pos,-6,8);
   return a;
@@ -847,7 +1180,7 @@ function askingPrice(t,p){
   return p.listed?Math.max(1,Math.round(base*(1-listDiscount(p)))):base;
 }
 function refreshListings(){
-  const pool=divTeams(1).concat(divTeams(2));
+  const pool=allClubIdxs();
   pool.forEach(t=>{
     if(t===state.teamIdx)return;
     const sq=state.squads[t];
@@ -863,7 +1196,7 @@ function refreshListings(){
   });
 }
 function refreshLoanListings(){
-  const pool=divTeams(1).concat(divTeams(2));
+  const pool=allClubIdxs();
   pool.forEach(t=>{
     if(t===state.teamIdx)return;
     const sq=state.squads[t];
@@ -958,7 +1291,7 @@ function sell(i){
   state.lineup=state.lineup.map(j=>j>i?j-1:j);
   sq.splice(i,1);
   // the player joins a new club rather than vanishing — and can't be immediately re-signed
-  const pool=divTeams(1).concat(divTeams(2)).filter(t=>t!==state.teamIdx);
+  const pool=allClubIdxs().filter(t=>t!==state.teamIdx);
   const dest=pick(pool);
   const moved={...p,listed:false,loanListed:false,onLoanFrom:undefined,boughtFor:undefined,boughtSp:undefined};
   state.squads[dest].push(moved);
@@ -1041,7 +1374,7 @@ function addNews(s){
 function aiTransfer(){
   if(!windowOpen())return;
   if(Math.random()>=0.35)return;
-  const pool=divTeams(1).concat(divTeams(2));
+  const pool=allClubIdxs();
   const from=pick(pool),to=pick(pool);
   if(from===to||from===state.teamIdx||to===state.teamIdx)return;
   const sq=state.squads[from];if(sq.length<=12)return;
@@ -1097,8 +1430,9 @@ function goal(m,home){
 }
 function drawEuroKO(){
   const eu=state.euro;if(!eu||eu.koOpp!=null)return;
-  const pool=(eu.comp==='UCL'?UCL_POOL:UEL_POOL).filter(i=>!eu.played.some(pl=>pl.opp===i));
-  eu.koOpp=pick(pool.length?pool:(eu.comp==='UCL'?UCL_POOL:UEL_POOL));
+  const basePool=euroPool(eu.comp);
+  const pool=basePool.filter(i=>!eu.played.some(pl=>pl.opp===i));
+  eu.koOpp=pick(pool.length?pool:basePool);
   eu.koHome=Math.random()<0.5;
   save();
 }
@@ -1288,7 +1622,7 @@ function finishMatch(){
     if(gateReceipts>0)live.log.push({t:"GATE RECEIPTS: +£"+gateReceipts+"M",c:'g'});
     if(wageCost>0)live.log.push({t:"WAGES PAID: -£"+wageCost+"M",c:'m'});
     state.res[myDiv()].push(live.ms.map(m=>({h:m.h,a:m.a,hs:m.hs,as:m.as})));
-    syncOtherDivision();
+    syncOtherDivisions();
     const rivals=divTeams(myDiv());
     const exp=1+rivals.filter(i=>TEAMS[i].str>TEAMS[state.teamIdx].str).length;
     let confDelta=(res==='WIN'?4:res==='DRAW'?0:-4)
@@ -1303,7 +1637,7 @@ function finishMatch(){
     state.rep=clamp(state.rep+(res==='WIN'?1:res==='LOSS'?-1:0),0,99);
     // a bigger, struggling club may come calling
     if(!state.offer&&state.rep>45&&Math.random()<0.10){
-      const tab=table(),pool=divTeams(1).concat(divTeams(2)),cands=[];
+      const tab=table(),pool=allClubIdxs(),cands=[];
       pool.forEach(i=>{
         const t=TEAMS[i];
         if(i===state.teamIdx||t.str<=TEAMS[state.teamIdx].str+2)return;
@@ -1512,21 +1846,42 @@ function renderMain(){
   $('main').innerHTML=h;
 }
 
-function toggleSelDiv(){selDiv=selDiv===1?2:1;render();}
+const SELECTABLE_DIVS=[1,2,10,11,12,13];
+function preGameRange(d){
+  if(d===1)return[0,DIV1_SIZE];
+  if(d===2)return[DIV1_SIZE,DIV2_SIZE];
+  if(d===10)return[DIV2_SIZE,LALIGA_END];
+  if(d===11)return[LALIGA_END,BUNDESLIGA_END];
+  if(d===12)return[BUNDESLIGA_END,SERIEA_END];
+  return[SERIEA_END,LIGUE1_END];
+}
+function toggleSelDiv(){
+  selDiv=SELECTABLE_DIVS[(SELECTABLE_DIVS.indexOf(selDiv)+1)%SELECTABLE_DIVS.length];
+  render();
+}
+function nextDiv(d){return SELECTABLE_DIVS[(SELECTABLE_DIVS.indexOf(d)+1)%SELECTABLE_DIVS.length];}
 function pageSelect(){
   let h=BLANK+banner('TELEBOSS','by')
-    +L(sp(' ENGLISH FOOTBALL 2025/26','c'))
+    +L(sp(' TOP EUROPEAN FOOTBALL 2025/26','c'))
     +L(sp(' A TELETEXT FOOTBALL MANAGEMENT GAME','w'))+BLANK
-    +L(sp(' CHOOSE YOUR CLUB:','y')
-      +`<span class="lnk byy" onclick="toggleSelDiv()"> ${DIVNAME[selDiv]} </span>`)+BLANK;
-  const from=selDiv===1?0:DIV1_SIZE,to=selDiv===1?DIV1_SIZE:DIV2_SIZE;
+    +L(sp(' CHOOSE A LEAGUE:','y'))+BLANK;
+  for(let r=0;r<3;r++){
+    let row=' ';
+    for(let c=0;c<2;c++){
+      const idx=r*2+c,d=SELECTABLE_DIVS[idx];
+      const label=' '+(idx+1)+' '+DIVNAME[d];
+      row+=`<span class="lnk ${d===selDiv?'byy':'c'}" onclick="selDiv=${d};render()">${padName(label,20)}</span>`;
+    }
+    h+=L(row);
+  }
+  h+=BLANK+L(sp(' CHOOSE YOUR CLUB: ','y')+sp(DIVNAME[selDiv],'w'))+BLANK;
+  const[from,to]=preGameRange(selDiv);
   for(let i=from;i<to;i++){
     const t=TEAMS[i],bars=Math.round((t.str-42)/6);
     h+=L(`<span class="lnk" onclick="newGame(${i})">`
       +sp('  '+padName(t.n,17),'w')+sp(pad(t.c,5),'c')
       +sp('█'.repeat(Math.max(1,bars)),'g')+'</span>');
   }
-  h+=BLANK+L(sp(' CLICK THE '+DIVNAME[selDiv]+' BUTTON TO SWITCH','m'));
   return h;
 }
 
@@ -1687,17 +2042,18 @@ function pageFixtures(){
 function pageTable(){
   const div=tableDiv||myDiv(),sz=DIVSIZE[div];
   let h=banner(DIVNAME[div]+' TABLE','by');
-  h+=L(`<span class="lnk byy" onclick="tableDiv=${div===1?2:1};render()"> VIEW ${DIVNAME[div===1?2:1]} </span>`);
+  h+=L(`<span class="lnk byy" onclick="tableDiv=${nextDiv(div)};render()"> VIEW ${DIVNAME[nextDiv(div)]} </span>`);
   h+=L(sp('  # TEAM          P  W  D  L   F   A PTS','c'));
+  const topFlight=TOPFLIGHT_DIVS.includes(div);
   table(div).forEach((r,k)=>{
-    const posCl=div===1?(k===0?'y':k<4?'g':k>=sz-3?'rd':'w'):(k<2?'g':k<6?'c':k>=sz-3?'rd':'w');
+    const posCl=topFlight?(k===0?'y':k<4?'g':k>=sz-3?'rd':'w'):(k<2?'g':k<6?'c':k>=sz-3?'rd':'w');
     const rowCl=r.i===state.teamIdx?'y':'w';
     h+=L(sp(padl(k+1,3)+' ',posCl)
       +sp(padName(TEAMS[r.i].n,13),rowCl)
       +sp(padl(r.p,2)+padl(r.w,3)+padl(r.d,3)+padl(r.l,3)+padl(r.f,4)+padl(r.a,4)+padl(r.pts,4),rowCl));
   });
-  h+=div===1?L(sp('  TOP4 EUROPE ','g')+sp(' BOTTOM 3 RELEGATED','rd'))
-            :L(sp('  TOP2 UP ','g')+sp(' 3-6 PLAY-OFFS ','c')+sp(' BOTTOM3 DOWN','rd'));
+  h+=topFlight?L(sp('  TOP4 EUROPE ','g')+sp(' BOTTOM 3','rd'))
+              :L(sp('  TOP2 UP ','g')+sp(' 3-6 PLAY-OFFS ','c')+sp(' BOTTOM3 DOWN','rd'));
   return h;
 }
 
@@ -1733,14 +2089,15 @@ function pageLive(){
   // season over
   if(!live&&!e){
     const tab=table(),champ=TEAMS[tab[0].i],pos=myPos(),cw=state.cup.winner,sz=DIVSIZE[div];
+    const hasRelegation=(div===1||div===2),topFlight=TOPFLIGHT_DIVS.includes(div);
     let h=BLANK+banner('SEASON '+state.season+' FINAL','by')+BLANK
-      +L(sp(' '+DIVNAME[div]+' CHAMPIONS: ','w')+sp(champ.n,'y'))
-      +L(sp(' CUP WINNERS: ','w')+sp(cw!==null?TEAMS[cw].n:'-','c'))
-      +L(sp(' YOU FINISHED: ','w')+sp(ordinal(pos),pos<=4?'g':pos>=sz-2?'rd':'c'))+BLANK;
+      +L(sp(' '+DIVNAME[div]+' CHAMPIONS: ','w')+sp(champ.n,'y'));
+    if(div===1||div===2)h+=L(sp(' CUP WINNERS: ','w')+sp(cw!==null?TEAMS[cw].n:'-','c'));
+    h+=L(sp(' YOU FINISHED: ','w')+sp(ordinal(pos),pos<=4?'g':(hasRelegation&&pos>=sz-2)?'rd':'c'))+BLANK;
     if(pos===1)h+=L(sp(' GLORY! THE TITLE IS YOURS!','y'));
-    else if(div===1&&pos<=4)h+=L(sp(' CHAMPIONS LEAGUE FOOTBALL SECURED','g'));
-    else if(div===1&&pos===5)h+=L(sp(' EUROPA LEAGUE FOOTBALL SECURED','g'));
-    else if(pos>=sz-2)h+=L(sp(' RELEGATED. THE BOARD IS FURIOUS.','rd'));
+    else if(topFlight&&pos<=4)h+=L(sp(' CHAMPIONS LEAGUE FOOTBALL SECURED','g'));
+    else if(topFlight&&pos===5)h+=L(sp(' EUROPA LEAGUE FOOTBALL SECURED','g'));
+    else if(hasRelegation&&pos>=sz-2)h+=L(sp(' RELEGATED. THE BOARD IS FURIOUS.','rd'));
     else if(div===2&&pos<=6)h+=L(sp(' PLAY-OFF PLACE — PROMOTION CHANCE!','g'));
     else h+=L(sp(' A SOLID MID-TABLE CAMPAIGN','c'));
     if(cw===state.teamIdx)h+=L(sp(' AND YOU WON THE TELEBOSS CUP!','y'));
@@ -1915,7 +2272,7 @@ function pageScout(){
   if(marketClub!=null)return pageScoutClub();
   const div=scoutDiv||myDiv();
   let h=banner('SCOUT: '+DIVNAME[div],'by')+BLANK;
-  h+=L(`<span class="lnk byy" onclick="scoutDiv=${div===1?2:1};render()"> VIEW ${DIVNAME[div===1?2:1]} </span>`);
+  h+=L(`<span class="lnk byy" onclick="scoutDiv=${nextDiv(div)};render()"> VIEW ${DIVNAME[nextDiv(div)]} </span>`);
   h+=L(sp(' CLICK A CLUB TO VIEW THEIR SQUAD:','c'));
   const pool=divTeams(div).filter(i=>i!==state.teamIdx)
     .sort((a,b)=>TEAMS[b].str-TEAMS[a].str);
@@ -2132,7 +2489,7 @@ function pageLoans(){
 function pageLoanMarket(){
   if(!windowOpen())return pageWindowClosed('LOAN MARKET');
   const market=[];
-  divTeams(1).concat(divTeams(2)).forEach(t=>{
+  allClubIdxs().forEach(t=>{
     if(t===state.teamIdx)return;
     state.squads[t].forEach((p,idx)=>{if(p.loanListed)market.push({t,idx,p});});
   });
