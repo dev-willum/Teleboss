@@ -514,7 +514,7 @@ const SERIEA_END=TEAMS.length;
 
 const LIGUE1=[
 {n:"PARIS SG",c:"PSG",str:90,p:[["CHEVALIER","GK",79,24],["SAFONOV","GK",69,27],
- ["PACHO","DF",81,24],["MARQUINHOS","DF",82,32],["HAKIMI","DF",83,27],["MENDES NUNO","DF",79,24],["ZABARNYI","DF",74,23],
+ ["PACHO","DF",81,24],["MARQUINHOS","DF",82,32],["HAKIMI","DF",83,27],["MENDES NUNO","DF",85,24],["ZABARNYI","DF",74,23],
  ["VITINHA","MF",85,26],["ZAIRE-EMERY","MF",81,20],["JOAO NEVES","MF",81,21],["FABIAN RUIZ","MF",80,30],["SANCHES RENATO","MF",71,28],
  ["DEMBELE O","FW",87,29],["DOUE","FW",82,21],["KVARATSKHELIA","FW",84,25],["BARCOLA","FW",81,23]]},
 {n:"MARSEILLE",c:"OM",str:82,p:[["RULLI","GK",80,34],["DE LANGE","GK",67,28],
@@ -592,6 +592,7 @@ const LIGUE1_END=TEAMS.length;
 
 const N=TEAMS.length;
 const DIVNAME={1:'PREMIER LEAGUE',2:'CHAMPIONSHIP',10:'LA LIGA',11:'BUNDESLIGA',12:'SERIE A',13:'LIGUE 1'};
+const DIVABBR={1:'PL',2:'CH',10:'LAL',11:'BUN',12:'SEA',13:'LG1'};
 const DIVSIZE={1:DIV1_SIZE,2:CHAMP_SIZE,10:LALIGA_SIZE,11:BUNDESLIGA_SIZE,12:SERIEA_SIZE,13:LIGUE1_SIZE};
 function divOfIndex(i){
   if(i<DIV1_SIZE)return 1;
@@ -786,7 +787,7 @@ function newGame(teamIdx){
     div:TEAMS.map((_,i)=>divOfIndex(i)),
     sp:0,cup:null,conf:60,news:[],sacked:false,
     rep:TOPFLIGHT_DIVS.includes(div)?30:15,offer:null,honours:[],snd:true,euro:null,lineup:[],rejected:{},
-    freeAgents:[],target:null,tots:[],loans:{out:[]},hof:{},youth:[],
+    freeAgents:[],target:null,tots:[],loans:{out:[]},hof:{},youth:[],press:null,
     facilities:{stadium:1,training:1,youth:1},career:{p:0,w:0,d:0,l:0,gf:0,ga:0},
     squads:TEAMS.map(t=>t.p.map(([name,pos,rat,age])=>
       ({name,pos,rat,form:0,goals:0,assists:0,inj:0,sus:0,age,listed:false,loanListed:false,yellows:0,contract:1+rnd(4)})))};
@@ -845,6 +846,25 @@ function computeTOTS(div){
   return[...top('GK',1),...top('DF',4),...top('MF',4),...top('FW',2)]
     .map(c=>({name:c.name,pos:c.pos,club:c.club}));
 }
+function computePlayerOfSeason(div){
+  let best=null,bestScore=-1;
+  divTeams(div).forEach(t=>state.squads[t].forEach(p=>{
+    const sc=p.rat+p.goals*1.3+(p.assists||0)*0.8;
+    if(sc>bestScore){bestScore=sc;best={name:p.name,club:TEAMS[t].c};}
+  }));
+  return best;
+}
+function computeBallonDor(){
+  let best=null,bestScore=-1;
+  allClubIdxs().forEach(t=>{
+    const topFlightBonus=TOPFLIGHT_DIVS.includes(state.div[t])?1:0.75;
+    state.squads[t].forEach(p=>{
+      const sc=(p.rat+p.goals*1.6+(p.assists||0)*0.9)*topFlightBonus;
+      if(sc>bestScore){bestScore=sc;best={name:p.name,club:TEAMS[t].c};}
+    });
+  });
+  return best;
+}
 function playerWage(p){return Math.max(1,Math.round(val(p)*0.08));}
 function totalWageBill(){return mySquad().reduce((s,p)=>s+playerWage(p),0);}
 function renewContract(i){
@@ -892,11 +912,16 @@ function newSeason(){
     if(pos<=4)qualifiesEuro='UCL';
     else if(pos===5||(wonCup&&pos<=8))qualifiesEuro='UEL';
   }
+  const potd=computePlayerOfSeason(wasDiv),bdor=computeBallonDor();
   state.honours.push({s:state.season,team:TEAMS[state.teamIdx].c,div:wasDiv,pos,
     champ:TEAMS[table(wasDiv)[0].i].c,
     cup:wonCup?'WON':state.cup.out?'OUT':'-',
     euro:state.euro?(state.euro.comp+' '+(state.euro.result||state.euro.stage)):'-',
-    gb:goldenBoot()});
+    gb:goldenBoot(),
+    potd:potd?potd.name+' ('+potd.club+')':'-',
+    bdor:bdor?bdor.name+' ('+bdor.club+')':'-'});
+  if(potd)addNews(potd.name+' ('+potd.club+') NAMED '+DIVNAME[wasDiv]+' PLAYER OF THE SEASON');
+  if(bdor)addNews(bdor.name+' ('+bdor.club+') WINS THE BALLON D’OR');
   state.tots=computeTOTS(wasDiv);
   if(state.target){
     const hitTarget=pos<=state.target.max;
@@ -1097,6 +1122,8 @@ function tgl(i){
   save();render();
 }
 function setTac(t){state.tactic=t;save();render();}
+const PRESS_LABEL={confident:'"WE CAN WIN THIS"',cautious:'"WE RESPECT THE OPPONENT"',aggressive:'"THIS SHOULD BE EASY"'};
+function setPress(kind){state.press=kind;save();render();}
 
 // ---------- speed / money / transfers ----------
 const SPEEDS={x1:280,x2:140,x4:50,x8:12};
@@ -1247,7 +1274,7 @@ function windowInfo(){
 function windowOpen(){return windowInfo().open;}
 
 // ---------- transfer market ----------
-let marketClub=null,scoutDiv=null,classPage=0,marketPage=0,loanMarketPage=0;
+let marketClub=null,scoutDiv=null,classPage=0,marketPage=0,loanMarketPage=0,contractsPage=0;
 function allListedPlayers(){
   const out=[];
   allClubIdxs().forEach(t=>{
@@ -1606,6 +1633,13 @@ function startMatch(){
   const mySq=mySquad(),myXI=state.lineup.map(i=>mySq[i]);
   live.motmPool=myXI.map(p=>({p,team:state.teamIdx,rating:motmBase(p)}))
     .concat(bestXI(oppIdx).map(p=>({p,team:oppIdx,rating:motmBase(p)})));
+  if(state.press){
+    const mine=live.user.h===state.teamIdx;
+    const selfBoost=state.press==='aggressive'?6:state.press==='confident'?3:0;
+    const oppBoost=state.press==='aggressive'?4:0;
+    if(mine){live.user.hAtt+=selfBoost;live.user.aAtt+=oppBoost;}
+    else{live.user.aAtt+=selfBoost;live.user.hAtt+=oppBoost;}
+  }
   live.log.push({t:"KICK OFF",c:'g'});
   startTimer();render();
 }
@@ -1767,6 +1801,14 @@ function finishMatch(){
         c:res==='WIN'?'y':res==='LOSS'?'rd':'w'});
       addNews((res==='WIN'?'DERBY DELIGHT':res==='LOSS'?'DERBY DISASTER':'DERBY STALEMATE')+' FOR '+TEAMS[state.teamIdx].n);
     }
+    if(state.press){
+      const swing=state.press==='confident'?(res==='WIN'?2:res==='LOSS'?-3:-1)
+        :state.press==='aggressive'?(res==='WIN'?3:res==='LOSS'?-5:-1)
+        :(res==='WIN'?1:res==='LOSS'?0:0);
+      confDelta+=swing;
+      live.log.push({t:"PRESS: "+PRESS_LABEL[state.press]+" — "+(swing>=0?"PAID OFF":"BACKFIRED"),
+        c:swing>=0?'g':'rd'});
+    }
     state.conf=clamp(state.conf+confDelta,0,100);
     state.rep=clamp(state.rep+(res==='WIN'?1:res==='LOSS'?-1:0),0,99);
     // a bigger, struggling club may come calling
@@ -1900,7 +1942,9 @@ function finishMatch(){
       const mine=best.team===state.teamIdx;
       live.log.push({t:"MAN OF THE MATCH: "+best.p.name+(mine?"":" ("+TEAMS[best.team].c+")"),c:'y'});
     }
+    live.highlights=live.log.filter(l=>/GOAL!|RED CARD|DOWN TO 10 MEN|MAN OF THE MATCH/.test(l.t)).slice(0,4);
   }
+  state.press=null;
   save();
 }
 
@@ -1926,6 +1970,7 @@ function go(p){
   if(p===304)tableDiv=null;
   if(p===317)classPage=0;
   if(p===307)marketPage=0;
+  if(p===324)contractsPage=0;
   if(p===321)loanMarketPage=0;
   render();
 }
@@ -1972,6 +2017,7 @@ function renderMain(){
     case 321:h=pageLoanMarket();break;
     case 322:h=pageHallOfFame();break;
     case 323:h=pageYouth();break;
+    case 324:h=pageContracts();break;
     default:h=BLANK+banner('PAGE NOT IN USE','bw')+BLANK
       +L(sp('  THIS PAGE IS CURRENTLY NOT IN USE','w'))
       +L(sp('  PLEASE SELECT PAGES 300-322','c'))+BLANK
@@ -2042,6 +2088,11 @@ function pageMenu(){
        +sp('   BOARD: ','w')+sp(mood,moodCl));
     if(state.euro)h+=L(sp(' '+state.euro.comp+': ','w')
       +sp(state.euro.stage==='LEAGUE'?state.euro.pts+' PTS FROM '+state.euro.played.length+' GAMES':state.euro.stage,'m'));
+    const rivalDivs=otherDivs();
+    if(rivalDivs.length){
+      const rd=rivalDivs[state.sp%rivalDivs.length],leader=table(rd)[0];
+      if(leader)h+=L(sp(' RIVAL WATCH: ','m')+sp(DIVABBR[rd]+' — '+TEAMS[leader.i].n+' TOP','c'));
+    }
     h+=BLANK+L(sp(' ','w')+`<span class="lnk byy" onclick="go(305)"> ► PLAY YOUR NEXT MATCH ► </span>`);
   }else{
     h+=L(sp(' SEASON '+state.season+' COMPLETE!','y'));
@@ -2053,10 +2104,10 @@ function pageMenu(){
     +sp(padName(' '+p+' '+txt,20),'w')+'</span>';
   const idx=[[301,'SQUAD+TEAM'],[302,'TACTICS'],[303,'FIXTURES'],[304,'TABLE'],
     [305,'PLAY MATCH'],[306,'TOP SCORERS'],[307,'BUY'],[308,'SELL'],
-    [315,'SCOUT CLUBS'],[318,'LOANS'],[319,'FACILITIES'],[320,'MANAGER'],
-    [322,'HALL OF FAME'],[323,'YOUTH ACADEMY'],[310,'CUP'],[314,'EUROPE'],[311,'NEWS'],
-    [312,'JOB CENTRE'],[313,'HONOURS'],[317,'CLASSIFIEDS'],[316,'SAVE GAME'],
-    [309,'NEW GAME']];
+    [315,'SCOUT CLUBS'],[318,'LOANS'],[324,'CONTRACTS'],[319,'FACILITIES'],
+    [320,'MANAGER'],[322,'HALL OF FAME'],[323,'YOUTH ACADEMY'],[310,'CUP'],
+    [314,'EUROPE'],[311,'NEWS'],[312,'JOB CENTRE'],[313,'HONOURS'],
+    [317,'CLASSIFIEDS'],[316,'SAVE GAME'],[309,'NEW GAME']];
   for(let i=0;i<idx.length;i+=2){
     const a=idx[i],b=idx[i+1];
     h+=L(' '+cell(a[0],a[1])+(b?cell(b[0],b[1]):''));
@@ -2078,8 +2129,8 @@ function pageSquad(){
   h+=L(sp('    NAME          POS RAT FRM AGE GLS','c'));
   const order=['GK','DF','MF','FW'];
   order.forEach(pos=>{
-    sq.forEach((p,i)=>{
-      if(p.pos!==pos)return;
+    const group=sq.map((p,i)=>({p,i})).filter(x=>x.p.pos===pos).sort((a,b)=>b.p.rat-a.p.rat);
+    group.forEach(({p,i})=>{
       const sel=state.lineup.includes(i);
       const frm=p.inj?'I'+p.inj:p.sus?'S'+p.sus:(p.form>0?'+'+p.form:String(p.form));
       h+=L(`<span class="lnk" onclick="tgl(${i})">`
@@ -2093,25 +2144,41 @@ function pageSquad(){
     });
   });
   h+=L(sp(' ','w')+`<span class="lnk by" onclick="autoPick();save();render()"> AUTO-PICK BEST XI </span>`);
-  const expiring=sq.map((p,i)=>({p,i})).filter(x=>x.p.contract<=1);
-  if(expiring.length){
-    h+=BLANK+L(sp(' CONTRACTS EXPIRING — WAGE £'+totalWageBill()+'M/SEASON','y'));
-    expiring.forEach(({p,i})=>{
-      h+=L(sp('  '+padName(p.name,15)+(p.contract<=0?'FREE THIS SUMMER':p.contract+' YR LEFT'),'m')
-        +`<span class="lnk bgr" onclick="renewContract(${i})"> RENEW £${Math.max(1,Math.round(val(p)*0.1))}M </span>`);
-    });
-  }else{
-    h+=BLANK+L(sp(' WAGE BILL: £'+totalWageBill()+'M/SEASON','m'));
-  }
+  h+=BLANK+L(sp(' WAGE BILL: £'+totalWageBill()+'M/SEASON','m'));
+  const expiring=sq.filter(p=>p.contract<=1);
+  if(expiring.length)h+=L(sp(' CONTRACTS EXPIRING: '+expiring.length+' — ','y')
+    +`<span class="lnk bgr" onclick="go(324)"> REVIEW - PAGE 324 </span>`);
   const onLoan=sq.filter(p=>p.onLoanFrom!=null);
   if(onLoan.length){
-    h+=BLANK+L(sp(' ON LOAN: ','m')+sp(onLoan.map(p=>p.name).join(', '),'c'));
+    h+=BLANK+L(sp(' ON LOAN: ','m')+sp(padName(onLoan.slice(0,3).map(p=>p.name).join(', ')
+      +(onLoan.length>3?' +'+(onLoan.length-3)+' MORE':''),37),'c'));
   }
   const fragile=sq.filter(p=>(p.injuryCount||0)>=3);
   if(fragile.length){
-    h+=BLANK+L(sp(' INJURY PRONE: ','rd')+sp(fragile.map(p=>p.name).join(', '),'c'));
+    h+=BLANK+L(sp(' INJURY PRONE: ','rd')+sp(padName(fragile.slice(0,3).map(p=>p.name).join(', ')
+      +(fragile.length>3?' +'+(fragile.length-3)+' MORE':''),33),'c'));
   }
   h+=L(sp(' MANAGE LOAN DEALS: PAGE 318','m'));
+  return h;
+}
+function pageContracts(){
+  const sq=mySquad();
+  let h=banner('CONTRACTS','by')+BLANK;
+  h+=L(sp(' WAGE BILL: £'+totalWageBill()+'M/SEASON','m'))+BLANK;
+  const expiring=sq.map((p,i)=>({p,i})).filter(x=>x.p.contract<=1);
+  if(!expiring.length){
+    h+=L(sp(' NO CONTRACTS EXPIRING SOON.','g'));
+    return h;
+  }
+  const perPage=6,total=Math.max(1,Math.ceil(expiring.length/perPage));
+  contractsPage=clamp(contractsPage,0,total-1);
+  if(total>1)h+=L(`<span class="lnk y" onclick="contractsPage--;render()">${pad(' << PREV',10)}</span>`
+    +sp(pad('PAGE '+(contractsPage+1)+'/'+total,20),'w')
+    +`<span class="lnk y" onclick="contractsPage++;render()">${padl('NEXT >> ',10)}</span>`)+BLANK;
+  expiring.slice(contractsPage*perPage,(contractsPage+1)*perPage).forEach(({p,i})=>{
+    h+=L(sp(' '+padName(p.name,15),'w')+sp(pad(p.contract<=0?'FREE THIS SUMMER':p.contract+' YR LEFT',15),'m'));
+    h+=L(`<span class="lnk bgr" onclick="renewContract(${i})">  RENEW £${Math.max(1,Math.round(val(p)*0.1))}M </span>`)+BLANK;
+  });
   return h;
 }
 
@@ -2206,6 +2273,13 @@ function pageScorers(){
   return h;
 }
 
+function pressBlock(){
+  if(state.press)return L(sp(' YOU TOLD THE PRESS: ','w')+sp(PRESS_LABEL[state.press],'m'));
+  return L(sp(' PRESS CONFERENCE: ','y')
+    +`<span class="lnk c" onclick="setPress('confident')">CONFIDENT</span> `
+    +`<span class="lnk c" onclick="setPress('cautious')">CAUTIOUS</span> `
+    +`<span class="lnk c" onclick="setPress('aggressive')">COCKY</span>`);
+}
 function pageLive(){
   const e=curEntry(),div=myDiv();
   // season over
@@ -2243,6 +2317,7 @@ function pageLive(){
         +L(sp(' TACTIC: ','w')+sp(state.tactic,'g')
           +sp('   XI: ','w')+sp(lineupOK()?'READY':'AUTO-PICK AT KO',lineupOK()?'g':'y'))
         +L(sp(' UNAVAILABLE: ','w')+sp(String(nOut),nOut?'rd':'g'))
+        +pressBlock()
         +speedRow()
         +BLANK
         +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> ██ KICK OFF ██ </span>`)
@@ -2262,6 +2337,7 @@ function pageLive(){
           +sp('   '+(e.stage==='LEAGUE'?'PTS: '+eu.pts:'DRAW = PENALTIES'),'c'))
         +L(sp(' TACTIC: ','w')+sp(state.tactic,'g')
           +sp('   UNAVAILABLE: ','w')+sp(String(nOut),nOut?'rd':'g'))
+        +pressBlock()
         +speedRow()+BLANK
         +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> ██ KICK OFF ██ </span>`)
         +BLANK+L(sp(' CONTINENTAL FOOTBALL AT ITS FINEST','m'));
@@ -2286,6 +2362,7 @@ function pageLive(){
         +sp('   DRAW = PENALTIES','y'))
       +L(sp(' TACTIC: ','w')+sp(state.tactic,'g')
         +sp('   UNAVAILABLE: ','w')+sp(String(nOut),nOut?'rd':'g'))
+      +pressBlock()
       +speedRow()+BLANK
       +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> ██ KICK OFF ██ </span>`)
       +BLANK+L(sp(' WIN OR GO HOME','m'));
@@ -2298,6 +2375,11 @@ function pageLive(){
   if(!live.done&&u&&!live.awaitTalk)h+=tacRow();
   if(u)h+=DH(sp(' '+TEAMS[u.h].c+padl(u.hs,3)+' - '+u.as+'  '+TEAMS[u.a].c+' ','y'));
   else h+=DH(sp(' CUP RESULTS ','y'));
+  if(live.done&&u&&live.highlights&&live.highlights.length){
+    h+=L(sp(' MATCH HIGHLIGHTS:','g'));
+    live.highlights.forEach(ev=>h+=L(sp(' '+ev.t,ev.c)));
+    h+=BLANK;
+  }
   if(live.awaitTalk){
     h+=L(sp(' HALF TIME — PICK YOUR TEAM TALK:','y'));
     h+=L(' <span class="lnk bcy" onclick="teamTalk(1)"> CALM </span> '
@@ -2309,10 +2391,15 @@ function pageLive(){
   live.log.forEach(ev=>{h+=L(sp(' '+ev.t,ev.c));});
   h+='</div>';
   if(live.ms.length>1){
-    h+=L(sp(' AROUND THE GROUNDS','c'));
-    const f=m=>pad(TEAMS[m.h].c,4)+padl(m.hs,2)+'-'+pad(String(m.as)+(m.pw!==undefined?'p':''),3)+pad(TEAMS[m.a].c,4);
-    for(let i=0;i<live.ms.length;i+=2)
-      h+=L(sp(' '+f(live.ms[i])+' '+(live.ms[i+1]?f(live.ms[i+1]):''),'w'));
+    if(live.ms.length>12){
+      h+=L(sp(' '+live.ms.length+' TIES PLAYED ACROSS THE ROUND','c'))
+        +L(sp(' FULL RESULTS: PAGE '+(live.cup?310:304),'m'));
+    }else{
+      h+=L(sp(' AROUND THE GROUNDS','c'));
+      const f=m=>pad(TEAMS[m.h].c,4)+padl(m.hs,2)+'-'+pad(String(m.as)+(m.pw!==undefined?'p':''),3)+pad(TEAMS[m.a].c,4);
+      for(let i=0;i<live.ms.length;i+=2)
+        h+=L(sp(' '+f(live.ms[i])+' '+(live.ms[i+1]?f(live.ms[i+1]):''),'w'));
+    }
   }
   if(live.done)
     h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="live=null;go(${live.cup?310:live.euro?314:304})"> CONTINUE </span>`);
@@ -2439,18 +2526,22 @@ function pageSell(){
     +sp('  FEE: FAIR VALUE','c'));
   h+=L(sp(msg?' '+msg:' CLICK ONCE TO PICK, AGAIN TO SELL',msg?'y':'c'));
   h+=L(sp('   NAME        POS RAT AGE OUT   £M','c'));
-  sq.forEach((p,i)=>{
-    const fee=sellPrice(p);
-    const capped=p.boughtFor!=null&&state.sp-p.boughtSp<8&&fee>=p.boughtFor;
-    const sel=pend==='s'+i;
-    h+=L(`<span class="lnk" onclick="sell(${i})">`
-      +sp(sel?' ►':'  ','y')
-      +sp(padName(p.name,13),sel?'y':p.inj?'rd':'w')
-      +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
-      +sp(padl(p.age,4),'c')
-      +sp(padl(p.inj?'I'+p.inj:p.sus?'S'+p.sus:'-',4),p.inj?'rd':p.sus?'m':'g')
-      +sp(padl(sel?'SELL?':fee,6),sel?'g':'y')+'</span>');
-    if(capped)h+=L(sp('      (JUST BOUGHT - NO PROFIT YET)','m'));
+  const order=['GK','DF','MF','FW'];
+  order.forEach(pos=>{
+    const group=sq.map((p,i)=>({p,i})).filter(x=>x.p.pos===pos).sort((a,b)=>b.p.rat-a.p.rat);
+    group.forEach(({p,i})=>{
+      const fee=sellPrice(p);
+      const capped=p.boughtFor!=null&&state.sp-p.boughtSp<8&&fee>=p.boughtFor;
+      const sel=pend==='s'+i;
+      h+=L(`<span class="lnk" onclick="sell(${i})">`
+        +sp(sel?' ►':'  ','y')
+        +sp(padName(p.name,13),sel?'y':p.inj?'rd':'w')
+        +sp(pad(p.pos,4),'c')+sp(padl(p.rat,3),'w')
+        +sp(padl(p.age,4),'c')
+        +sp(padl(p.inj?'I'+p.inj:p.sus?'S'+p.sus:'-',4),p.inj?'rd':p.sus?'m':'g')
+        +sp(padl(sel?'SELL?':fee,6),sel?'g':'y')+'</span>');
+      if(capped)h+=L(sp('      (JUST BOUGHT - NO PROFIT YET)','m'));
+    });
   });
   return h;
 }
@@ -2525,7 +2616,7 @@ function pageHonours(){
   if(!recent.length)h+=L(sp(' YOUR STORY STARTS HERE...','w'));
   h+='<div id="honourslog" class="scrollbox" style="height:8.4em;overflow-y:auto">';
   recent.forEach(x=>{
-    h+=L(sp(padl(x.s,2)+' ','w')+sp(pad(x.div===1?'PL':'CH',4),'c')
+    h+=L(sp(padl(x.s,2)+' ','w')+sp(pad(DIVABBR[x.div]||'?',4),'c')
       +sp(pad(x.team,5),'y')
       +sp(pad(ordinal(x.pos),5),x.pos===1?'y':'w')
       +sp(pad(x.cup,5),x.cup==='WON'?'y':'w')
@@ -2538,6 +2629,8 @@ function pageHonours(){
   h+=BLANK+L(sp(' TROPHIES WON: '+tr,tr?'y':'w'));
   const lastH=state.honours[state.honours.length-1];
   if(lastH&&lastH.gb)h+=L(sp(' LAST GOLDEN BOOT: '+lastH.gb,'c'));
+  if(lastH&&lastH.bdor&&lastH.bdor!=='-')h+=L(sp(' LAST BALLON D’OR: ','m')+sp(lastH.bdor,'y'));
+  if(lastH&&lastH.potd&&lastH.potd!=='-')h+=L(sp(' '+DIVNAME[lastH.div]+' PLAYER OF SEASON: ','c')+sp(lastH.potd,'y'));
   if(state.tots&&state.tots.length){
     h+=BLANK+L(sp(' TEAM OF THE SEASON:','g'));
     state.tots.forEach(p=>h+=L(sp('  '+padName(p.name,15)+pad(p.pos,4)+p.club,'w')));
