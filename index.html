@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>TELEBOSS — Teletext Football Manager 25/26</title>
+<title>TELEBOSS</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230000c8'/><text x='16' y='23' font-family='Courier New,monospace' font-weight='bold' font-size='16' fill='%23ffff00' text-anchor='middle'>TB</text></svg>">
+<meta property="og:title" content="TELEBOSS">
+<meta property="og:description" content="A teletext-style football management game">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
@@ -2522,8 +2525,7 @@ function pageSell(){
   if(!windowOpen())return pageWindowClosed('SELL PLAYERS');
   const sq=mySquad();
   let h=banner('SELL PLAYERS','by');
-  h+=L(sp(' BANK: ','w')+sp('£'+state.budget+'M','g')
-    +sp('  FEE: FAIR VALUE','c'));
+  h+=L(sp(' BANK: ','w')+sp('£'+state.budget+'M','g'));
   h+=L(sp(msg?' '+msg:' CLICK ONCE TO PICK, AGAIN TO SELL',msg?'y':'c'));
   h+=L(sp('   NAME        POS RAT AGE OUT   £M','c'));
   const order=['GK','DF','MF','FW'];
