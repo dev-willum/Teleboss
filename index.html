@@ -656,6 +656,11 @@ const ADS=["CALL 0898-224466 FOR HOT TIPS P.340","3 SHELL SUITS £9.99 - TELESHO
  "HAM RADIO CLUB: NEW MEMBERS P.813","FOSSIL HUNTING WEEKEND £8 P.812",
  "ROCK AND MINERAL SHOW £2 P.512","SCHOOL REUNION NOTICES - P.230",
  "SILVER WEDDING NOTICES - P.231"];
+function adLine(ad){
+  return ad.includes('FETTLEFIX.COM')
+    ? `<span class="lnk m" onclick="go(520)">${ad}</span>`
+    : sp(ad,'m');
+}
 const RIVALRIES=[
  ["ARSENAL","TOTTENHAM"],["LIVERPOOL","EVERTON"],["MAN UTD","MAN CITY"],["MAN UTD","LIVERPOOL"],
  ["CHELSEA","TOTTENHAM"],["NEWCASTLE","SUNDERLAND"],["CRYSTAL PALACE","BRIGHTON"],
@@ -2023,6 +2028,7 @@ function renderMain(){
     case 312:h=pageContracts();break;
     case 325:h=pageTutorial();break;
     case 326:h=pageCredits();break;
+    case 520:h=pageFettleFix();break;
     default:h=BLANK+banner('PAGE NOT IN USE','bw')+BLANK
       +L(sp('  THIS PAGE IS CURRENTLY NOT IN USE','w'))
       +L(sp('  PLEASE SELECT A VALID PAGE','c'))+BLANK
@@ -2119,7 +2125,7 @@ function pageMenu(){
     h+=L(' '+cell(a[0],a[1])+(b?cell(b[0],b[1]):''));
   }
   if(state.offer)h+=BLANK+L(sp(' ** JOB OFFER WAITING — PAGE 320 **','m'));
-  else h+=BLANK+L(sp(' '+pick(ADS),'m'));
+  else h+=BLANK+L(' '+adLine(pick(ADS)));
   return h;
 }
 
@@ -2586,7 +2592,7 @@ function pageNews(){
   let h=banner('TELEBOSS NEWS','by')+BLANK;
   if(!state.news.length)h+=L(sp(' NO NEWS IS GOOD NEWS','w'));
   state.news.forEach((s,k)=>{h+=L(sp(' '+pad(s,39),k%2?'c':'w'));});
-  h+=BLANK+L(sp(' '+pick(ADS),'m'));
+  h+=BLANK+L(' '+adLine(pick(ADS)));
   h+=L(sp(' ALL CLASSIFIEDS: PAGE 322','m'));
   return h;
 }
@@ -2718,6 +2724,23 @@ function pageCredits(){
   h+=L(sp(' PROJECT — GET IN TOUCH:','w'))+BLANK;
   h+=L(sp(' ','w')+`<a href="mailto:nstntmadness@gmail.com" class="lnk y" style="text-decoration:none">nstntmadness@gmail.com</a>`)+BLANK;
   h+=L(sp(' THANKS FOR PLAYING!','m'))+BLANK;
+  h+=L(sp(' ','w')+`<span class="lnk by" onclick="go(300)"> BACK TO INDEX </span>`);
+  return h;
+}
+function pageFettleFix(){
+  let h=banner('FETTLEFIX','by')+BLANK;
+  h+=L(sp(' THE TICKET BOOK HAD A GOOD RUN.','y'))+BLANK;
+  h+=L(sp(' FETTLEFIX REPLACES THE CARBON-PAPER','w'));
+  h+=L(sp(' CLAIM TICKET WITH JOB TRACKING,','w'));
+  h+=L(sp(' CUSTOMER STATUS PAGES, WRITTEN','w'));
+  h+=L(sp(' ESTIMATE APPROVALS AND SERVICE','w'));
+  h+=L(sp(' REMINDERS. IT WAS BUILT FOR','w'));
+  h+=L(sp(' CLOCK AND WATCH REPAIRERS,','w'));
+  h+=L(sp(' TYPEWRITER SHOPS, CAMERA','w'));
+  h+=L(sp(' TECHNICIANS AND EVERY OTHER','w'));
+  h+=L(sp(' TRADE THE BIG SOFTWARE','w'));
+  h+=L(sp(' COMPANIES FORGOT.','w'))+BLANK;
+  h+=L(sp(' ','w')+`<a href="https://fettlefix.com" target="_blank" class="lnk byy" style="text-decoration:none"> VISIT FETTLEFIX.COM </a>`)+BLANK;
   h+=L(sp(' ','w')+`<span class="lnk by" onclick="go(300)"> BACK TO INDEX </span>`);
   return h;
 }
@@ -2875,7 +2898,7 @@ function pageClassifieds(){
     +`<span class="lnk y" onclick="classPage++;render()">${padl('NEXT >> ',10)}</span>`);
   h+=BLANK;
   ADS.slice(classPage*perPage,(classPage+1)*perPage).forEach((ad,i)=>{
-    h+=L(sp(' '+ad,i%2?'c':'w'));
+    h+=L(ad.includes('FETTLEFIX.COM')?' '+adLine(ad):sp(' '+ad,i%2?'c':'w'));
   });
   h+=BLANK+L(sp(' '+ADS.length+' ADS IN TOTAL','m'));
   return h;
