@@ -17,8 +17,9 @@ body{display:flex;justify-content:center;align-items:center;overflow:auto;
   box-shadow:0 0 70px rgba(0,0,0,.9), inset 0 0 40px rgba(0,0,0,.6)}
 #crt::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:14px;
   background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px)}
-#screen{width:44ch;font-size:min(2.2vh,2.4vw);line-height:1.2;color:#fff}
+#screen{width:46ch;font-size:min(2vh,2.2vw);line-height:1.2;color:#fff}
 .ln{white-space:pre;min-height:1.2em}
+#main{max-height:74vh;overflow:auto;padding-right:.2ch}
 .dhw{height:2.4em;overflow:hidden}
 .dh{display:inline-block;transform:scaleY(2);transform-origin:top left;white-space:pre}
 .w{color:#fff}.y{color:#ff0}.c{color:#0ff}.g{color:#0f0}.m{color:#f0f}
@@ -2861,7 +2862,7 @@ function pageHallOfFame(){
 function pageYouth(){
   const y=state.youth||[];
   let h=banner('YOUTH ACADEMY','by')+BLANK;
-  h+=L(sp(msg?' '+msg:' LV '+state.facilities.youth+'/5 — BETTER LEVELS PRODUCE SHARPER PROSPECTS',msg?'y':'c'))+BLANK;
+  h+=L(sp(msg?' '+msg:' ACADEMY LV '+state.facilities.youth+'/5 - BETTER PROSPECTS',msg?'y':'c'))+BLANK;
   if(!y.length){
     h+=L(sp(' NO PROSPECTS RIGHT NOW.','w'));
     h+=L(sp(' CHECK BACK NEXT SEASON’S INTAKE DAY.','c'));
@@ -2874,7 +2875,7 @@ function pageYouth(){
       +sp(padName(p.name,15),'w')+sp(pad(p.pos,4),'c')+sp(padl(p.age,3)+' ','w')
       +sp(padl(p.rat,3)+' ','w')+sp('█'.repeat(Math.max(1,potBars)),p.potential>=80?'y':'g')+'</span>');
   });
-  h+=BLANK+L(sp(' CLICK A PROSPECT TO PROMOTE TO FIRST TEAM','c'));
+  h+=BLANK+L(sp(' CLICK A PROSPECT TO PROMOTE','c'));
   return h;
 }
 function pageSaveGame(){
