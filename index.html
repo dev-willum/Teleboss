@@ -616,20 +616,20 @@ const ADS=["CALL 0898-224466 FOR HOT TIPS P.340","3 SHELL SUITS £9.99 - TELESHO
  "WIN £500 CASH! ENTER NOW - P.556","3-SEATER SOFA JUST £99 - P.151","STATIC CARAVAN WEEKS £89 P.556",
  "DATELINE 0891-700 - DETAILS P.180","HORLICKS 200G JAR £1.89 - P.152",
  "COSTA APARTMENTS FROM £3995 P.402","RENT-A-VIDEO: NEW RELEASES P.153","MOT TEST £29.99 THIS WEEK P.888",
- "BINGO JACKPOT NOW £12,000 - P.333","STAIRLIFTS FROM £995 FITTED P.154","SPOT THE BALL WIN A MINI P.777",
+ "BINGO JACKPOT NOW £12,000 - P.315","STAIRLIFTS FROM £995 FITTED P.154","SPOT THE BALL WIN A MINI P.777",
  "DOUBLE YOUR MONEY - ENTER P.610","CAVITY WALL GRANTS UP TO £500 P.221","CHIP SHOP OF THE YEAR VOTE P.640",
  "INTENSIVE DRIVING COURSE £199 P.415","FREE SATELLITE DISH - DETAILS P.155","TAROT READINGS 24HRS 0898-101 P.171",
- "KNITWEAR SALE: CARDIGANS £12 P.156","WIN A SPEEDBOAT WORTH £4000 P.719","BINGO CALLERS WANTED £40/NIGHT P.333",
+ "KNITWEAR SALE: CARDIGANS £12 P.156","WIN A SPEEDBOAT WORTH £4000 P.719","BINGO CALLERS WANTED £40/NIGHT P.315",
  "COMPUTER COURSES £45/TERM P.157","CONSERVATORIES FROM £999 - P.221","PIGEON RACING RESULTS TODAY P.811",
  "STRONGEST MAN HIGHLIGHTS - P.641","HEDGE TRIMMING FROM £15 - P.158","CARAVANS WANTED, CASH PAID P.556",
  "MEET SINGLES TONIGHT 0891-800 P.180","FREEZER FOOD: 20 MEALS £15 P.450","GARDEN SHEDS HALF PRICE - P.159",
- "UNCLE BARRY'S RACING TIPS P.341","DARTS ARROWS SET ONLY £6.99 P.642","SNOOKER CUES REPAIRED - P.642",
+ "UNCLE BARRY'S RACING TIPS P.317","DARTS ARROWS SET ONLY £6.99 P.642","SNOOKER CUES REPAIRED - P.642",
  "CAR BOOT SALE SUN, PITCH £5 P.902","PONY CLUB RALLY RESULTS - P.812","WIN 2 CUP FINAL TICKETS - P.557",
  "CROSSWORD PRIZE £50 - ENTER P.231","NET CURTAINS BOGOF - P.160","BUDGERIGAR SOCIETY SHOW - P.512",
  "ALLOTMENT SEEDS 50P A PACK P.161","TALKING CLOCK: DIAL 123 - P.100","WEATHER FORECAST - PAGE 401",
  "TRAVEL NEWS - PAGE 190","HOROSCOPES FOR THE WEEK - P.170","PONTINS SUMMER WEEKS £89 - P.460",
  "BUTLINS REDCOATS WANTED - P.410","SHELL SUITS 2 FOR £15 - P.150","VIDEO CLUB: JOIN FOR £5/YEAR P.153",
- "CB RADIO CLUB MEETS THURS P.813","WORKING MEN'S CLUB DISCO FRI P.643","FRUIT MACHINE JACKPOT £250 P.333",
+ "CB RADIO CLUB MEETS THURS P.813","WORKING MEN'S CLUB DISCO FRI P.643","FRUIT MACHINE JACKPOT £250 P.315",
  "SPACE HOPPERS NOW £4.99 - P.162","HOME PERM KIT HALF PRICE - P.163","LOFT INSULATION FREE QUOTE P.221",
  "SOFT FURNISHINGS CLEARANCE P.164","MICROWAVE MEALS 10P OFF - P.450","STICKER SWAPS: GOT, GOT, NEED P.644",
  "PIGEON FANCIERS WEEKLY - P.811","GREYHOUND RESULTS - 6.45 P.520","SPEAK-YOUR-WEIGHT HIRE £2/DAY P.165",
@@ -647,7 +647,7 @@ const ADS=["CALL 0898-224466 FOR HOT TIPS P.340","3 SHELL SUITS £9.99 - TELESHO
  "PIE AND MASH 99P THIS WEEK P.451","WEDDING FAIR SUN, FREE ENTRY P.402",
  "L-PLATES AND MIRRORS £2.50 P.415","VEHICLE RECOVERY £25/YEAR P.416",
  "STATIC CARAVAN FROM £4995 P.556","TODAY'S EXCHANGE RATES - P.191",
- "PREMIUM BONDS: CHECK YOUR WIN P.220","FOOTBALL POOLS: THIS WEEK P.342",
+ "PREMIUM BONDS: CHECK YOUR WIN P.220","FOOTBALL POOLS: THIS WEEK P.318",
  "FISHING TACKLE SALE 20% OFF P.651","GARDEN GNOMES £3.99 BOGOF P.172",
  "GREENHOUSE SALE FROM £149 P.173","WALLPAPER CLEARANCE HALF PRICE P.174",
  "LOCKSMITH 24HR CALLOUT £35 P.175","WINDOW CLEANER WANTED £8/HR P.417",
@@ -1968,13 +1968,13 @@ function renderFtx(){
 }
 function go(p){
   cur=p;pend=null;msg='';
-  if(p!==315){marketClub=null;scoutDiv=null;}
+  if(p!==309){marketClub=null;scoutDiv=null;}
   if(p===303&&state)viewMD=Math.min(state.res[myDiv()].length,state.fx[myDiv()].length-1);
   if(p===304)tableDiv=null;
-  if(p===317)classPage=0;
+  if(p===322)classPage=0;
   if(p===307)marketPage=0;
-  if(p===324)contractsPage=0;
-  if(p===321)loanMarketPage=0;
+  if(p===312)contractsPage=0;
+  if(p===311)loanMarketPage=0;
   render();
 }
 function render(){renderHdr();renderMain();renderFtx();}
@@ -2005,25 +2005,27 @@ function renderMain(){
     case 306:h=pageScorers();break;
     case 307:h=pageBuy();break;
     case 308:h=pageSell();break;
-    case 309:h=pageNewGame();break;
-    case 310:h=pageCup();break;
-    case 311:h=pageNews();break;
-    case 312:h=pageJob();break;
-    case 313:h=pageHonours();break;
-    case 314:h=pageEurope();break;
-    case 315:h=pageScout();break;
-    case 316:h=pageSaveGame();break;
-    case 317:h=pageClassifieds();break;
-    case 318:h=pageLoans();break;
-    case 319:h=pageFacilities();break;
-    case 320:h=pageManagerProfile();break;
-    case 321:h=pageLoanMarket();break;
-    case 322:h=pageHallOfFame();break;
-    case 323:h=pageYouth();break;
-    case 324:h=pageContracts();break;
+    case 324:h=pageNewGame();break;
+    case 317:h=pageCup();break;
+    case 319:h=pageNews();break;
+    case 320:h=pageJob();break;
+    case 321:h=pageHonours();break;
+    case 318:h=pageEurope();break;
+    case 309:h=pageScout();break;
+    case 323:h=pageSaveGame();break;
+    case 322:h=pageClassifieds();break;
+    case 310:h=pageLoans();break;
+    case 313:h=pageFacilities();break;
+    case 314:h=pageManagerProfile();break;
+    case 311:h=pageLoanMarket();break;
+    case 315:h=pageHallOfFame();break;
+    case 316:h=pageYouth();break;
+    case 312:h=pageContracts();break;
+    case 325:h=pageTutorial();break;
+    case 326:h=pageCredits();break;
     default:h=BLANK+banner('PAGE NOT IN USE','bw')+BLANK
       +L(sp('  THIS PAGE IS CURRENTLY NOT IN USE','w'))
-      +L(sp('  PLEASE SELECT PAGES 300-322','c'))+BLANK
+      +L(sp('  PLEASE SELECT A VALID PAGE','c'))+BLANK
       +L(sp('  ','w')+sp('<span class="lnk by" onclick="go(300)"> INDEX 300 </span>','w'));
   }
   $('main').innerHTML=h;
@@ -2096,7 +2098,7 @@ function pageMenu(){
       const rd=rivalDivs[state.sp%rivalDivs.length],leader=table(rd)[0];
       if(leader)h+=L(sp(' RIVAL WATCH: ','m')+sp(DIVABBR[rd]+' — '+TEAMS[leader.i].n+' TOP','c'));
     }
-    h+=BLANK+L(sp(' ','w')+`<span class="lnk byy" onclick="go(305)"> ► PLAY YOUR NEXT MATCH ► </span>`);
+    h+=L(sp(' ','w')+`<span class="lnk byy" onclick="go(305)"> ► PLAY YOUR NEXT MATCH ► </span>`);
   }else{
     h+=L(sp(' SEASON '+state.season+' COMPLETE!','y'));
     h+=L(sp(' FINAL POSITION: '+myPos(),'c'));
@@ -2107,15 +2109,16 @@ function pageMenu(){
     +sp(padName(' '+p+' '+txt,20),'w')+'</span>';
   const idx=[[301,'SQUAD+TEAM'],[302,'TACTICS'],[303,'FIXTURES'],[304,'TABLE'],
     [305,'PLAY MATCH'],[306,'TOP SCORERS'],[307,'BUY'],[308,'SELL'],
-    [315,'SCOUT CLUBS'],[318,'LOANS'],[324,'CONTRACTS'],[319,'FACILITIES'],
-    [320,'MANAGER'],[322,'HALL OF FAME'],[323,'YOUTH ACADEMY'],[310,'CUP'],
-    [314,'EUROPE'],[311,'NEWS'],[312,'JOB CENTRE'],[313,'HONOURS'],
-    [317,'CLASSIFIEDS'],[316,'SAVE GAME'],[309,'NEW GAME']];
+    [309,'SCOUT CLUBS'],[310,'LOANS'],[312,'CONTRACTS'],[313,'FACILITIES'],
+    [314,'MANAGER'],[315,'HALL OF FAME'],[316,'YOUTH ACADEMY'],[317,'CUP'],
+    [318,'EUROPE'],[319,'NEWS'],[320,'JOB CENTRE'],[321,'HONOURS'],
+    [322,'CLASSIFIEDS'],[323,'SAVE GAME'],[324,'NEW GAME'],
+    [325,'TUTORIAL'],[326,'CREDITS']];
   for(let i=0;i<idx.length;i+=2){
     const a=idx[i],b=idx[i+1];
     h+=L(' '+cell(a[0],a[1])+(b?cell(b[0],b[1]):''));
   }
-  if(state.offer)h+=BLANK+L(sp(' ** JOB OFFER WAITING — PAGE 312 **','m'));
+  if(state.offer)h+=BLANK+L(sp(' ** JOB OFFER WAITING — PAGE 320 **','m'));
   else h+=BLANK+L(sp(' '+pick(ADS),'m'));
   return h;
 }
@@ -2147,21 +2150,20 @@ function pageSquad(){
     });
   });
   h+=L(sp(' ','w')+`<span class="lnk by" onclick="autoPick();save();render()"> AUTO-PICK BEST XI </span>`);
-  h+=BLANK+L(sp(' WAGE BILL: £'+totalWageBill()+'M/SEASON','m'));
   const expiring=sq.filter(p=>p.contract<=1);
-  if(expiring.length)h+=L(sp(' CONTRACTS EXPIRING: '+expiring.length+' — ','y')
-    +`<span class="lnk bgr" onclick="go(324)"> REVIEW - PAGE 324 </span>`);
+  h+=BLANK+L(sp(' WAGE: £'+totalWageBill()+'M/SEASON','m')
+    +(expiring.length?sp('  EXPIRING: '+expiring.length+' ','y')+`<span class="lnk bgr" onclick="go(312)">→312</span>`:''));
   const onLoan=sq.filter(p=>p.onLoanFrom!=null);
+  const fragile=sq.filter(p=>(p.injuryCount||0)>=3);
+  if(onLoan.length||fragile.length)h+=BLANK;
   if(onLoan.length){
-    h+=BLANK+L(sp(' ON LOAN: ','m')+sp(padName(onLoan.slice(0,3).map(p=>p.name).join(', ')
+    h+=L(sp(' ON LOAN: ','m')+sp(padName(onLoan.slice(0,3).map(p=>p.name).join(', ')
       +(onLoan.length>3?' +'+(onLoan.length-3)+' MORE':''),37),'c'));
   }
-  const fragile=sq.filter(p=>(p.injuryCount||0)>=3);
   if(fragile.length){
-    h+=BLANK+L(sp(' INJURY PRONE: ','rd')+sp(padName(fragile.slice(0,3).map(p=>p.name).join(', ')
+    h+=L(sp(' INJURY PRONE: ','rd')+sp(padName(fragile.slice(0,3).map(p=>p.name).join(', ')
       +(fragile.length>3?' +'+(fragile.length-3)+' MORE':''),33),'c'));
   }
-  h+=L(sp(' MANAGE LOAN DEALS: PAGE 318','m'));
   return h;
 }
 function pageContracts(){
@@ -2272,7 +2274,7 @@ function pageScorers(){
     h+=L(sp(padl(k+1,3)+' ','c')+sp(padName(e.p.name,15),mine?'y':'w')
       +sp(pad(TEAMS[e.t].c,6),'c')+sp(padl(e.p.assists,3),'g'));
   });
-  h+=BLANK+L(sp(' CAREER STATS: HALL OF FAME - PAGE 322','m'));
+  h+=BLANK+L(sp(' CAREER STATS: HALL OF FAME - PAGE 315','m'));
   return h;
 }
 
@@ -2355,7 +2357,7 @@ function pageLive(){
         +L(sp(inHat?' YOU HAVE A BYE THIS ROUND':' YOU ARE OUT OF THE CUP',inHat?'g':'rd'))
         +BLANK
         +L(sp(' ','w')+`<span class="lnk by" onclick="startMatch()"> PLAY ROUND (INSTANT) </span>`)
-        +BLANK+L(sp(' FULL DRAW ON PAGE 310','m'));
+        +BLANK+L(sp(' FULL DRAW ON PAGE 317','m'));
     }
     const home=tie.h===state.teamIdx;
     return BLANK+banner('CUP: '+cupLabel(),'by')+BLANK
@@ -2396,7 +2398,7 @@ function pageLive(){
   if(live.ms.length>1){
     if(live.ms.length>12){
       h+=L(sp(' '+live.ms.length+' TIES PLAYED ACROSS THE ROUND','c'))
-        +L(sp(' FULL RESULTS: PAGE '+(live.cup?310:304),'m'));
+        +L(sp(' FULL RESULTS: PAGE '+(live.cup?317:304),'m'));
     }else{
       h+=L(sp(' AROUND THE GROUNDS','c'));
       const f=m=>pad(TEAMS[m.h].c,4)+padl(m.hs,2)+'-'+pad(String(m.as)+(m.pw!==undefined?'p':''),3)+pad(TEAMS[m.a].c,4);
@@ -2405,7 +2407,7 @@ function pageLive(){
     }
   }
   if(live.done)
-    h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="live=null;go(${live.cup?310:live.euro?314:304})"> CONTINUE </span>`);
+    h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="live=null;go(${live.cup?317:live.euro?318:304})"> CONTINUE </span>`);
   return h;
 }
 
@@ -2475,7 +2477,7 @@ function pageBuy(){
         +sp(padl(p.age,5)+' ','c')+sp('FREE','g')+'</span>');
     }
   });
-  h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="go(315)"> SCOUT CLUBS — PAGE 315 </span>`);
+  h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="go(309)"> SCOUT CLUBS — PAGE 309 </span>`);
   h+=L(sp(' SELL PLAYERS ON PAGE 308','m'));
   return h;
 }
@@ -2585,7 +2587,7 @@ function pageNews(){
   if(!state.news.length)h+=L(sp(' NO NEWS IS GOOD NEWS','w'));
   state.news.forEach((s,k)=>{h+=L(sp(' '+pad(s,39),k%2?'c':'w'));});
   h+=BLANK+L(sp(' '+pick(ADS),'m'));
-  h+=L(sp(' ALL CLASSIFIEDS: PAGE 317','m'));
+  h+=L(sp(' ALL CLASSIFIEDS: PAGE 322','m'));
   return h;
 }
 
@@ -2680,7 +2682,44 @@ function pageNewGame(){
     +L(sp(' ','w')+`<span class="lnk brd" onclick="resetAll()"> CONFIRM — WIPE + RESTART </span>`)
     +BLANK
     +L(sp(' ','w')+`<span class="lnk bgr" onclick="go(300)"> NO! BACK TO SAFETY </span>`)
-    +BLANK+L(sp(' TO SAVE OR BACK UP YOUR CAREER: PAGE 316','m'));
+    +BLANK+L(sp(' TO SAVE OR BACK UP YOUR CAREER: PAGE 323','m'));
+}
+
+function pageTutorial(){
+  let h=banner('TUTORIAL','by')+BLANK;
+  h+=L(sp(' WELCOME TO TELEBOSS!','y'))+BLANK;
+  h+=L(sp(' GETTING STARTED:','g'));
+  h+=L(sp('  1. PICK YOUR SQUAD ','w')+sp('PAGE 301','c'));
+  h+=L(sp('  2. SET YOUR TACTICS ','w')+sp('PAGE 302','c'));
+  h+=L(sp('  3. PLAY YOUR MATCH ','w')+sp('PAGE 305','c'));
+  h+=L(sp('  4. CHECK THE TABLE ','w')+sp('PAGE 304','c'));
+  h+=L(sp('  5. BUY / SELL PLAYERS ','w')+sp('307/308','c'))+BLANK;
+  h+=L(sp(' NAVIGATION:','g'));
+  h+=L(sp(' CLICK ANY LINK, OR ON DESKTOP','w'));
+  h+=L(sp(' JUST TYPE A PAGE NUMBER ON YOUR','w'));
+  h+=L(sp(' KEYBOARD (TRY THE NUMPAD!) TO JUMP','w'));
+  h+=L(sp(' STRAIGHT THERE — JUST LIKE REAL','w'));
+  h+=L(sp(' TELETEXT. PRESS ESC TO CANCEL.','w'))+BLANK;
+  h+=L(sp(' EVERY PAGE IS NUMBERED — SEE THE','c'));
+  h+=L(sp(' FULL DIRECTORY ON THE INDEX (300)','c'))+BLANK;
+  h+=L(sp(' ','w')+`<span class="lnk by" onclick="go(300)"> BACK TO INDEX </span>`);
+  return h;
+}
+function pageCredits(){
+  let h=banner('CREDITS','by')+BLANK;
+  h+=L(sp(' TELEBOSS','y'))+BLANK;
+  h+=L(sp(' A TELETEXT-STYLE FOOTBALL','w'));
+  h+=L(sp(' MANAGEMENT GAME, BUILT FOR THE','w'));
+  h+=L(sp(' LOVE OF CEEFAX AND THE BEAUTIFUL','w'));
+  h+=L(sp(' GAME.','w'))+BLANK;
+  h+=L(sp(' CONTACT:','g'));
+  h+=L(sp(' ADVERTISERS, INVESTORS, OR ANYONE','w'));
+  h+=L(sp(' WHO WANTS TO HELP WITH THE','w'));
+  h+=L(sp(' PROJECT — GET IN TOUCH:','w'))+BLANK;
+  h+=L(sp(' ','w')+`<a href="mailto:nstntmadness@gmail.com" class="lnk y" style="text-decoration:none">nstntmadness@gmail.com</a>`)+BLANK;
+  h+=L(sp(' THANKS FOR PLAYING!','m'))+BLANK;
+  h+=L(sp(' ','w')+`<span class="lnk by" onclick="go(300)"> BACK TO INDEX </span>`);
+  return h;
 }
 
 function pageLoans(){
@@ -2700,7 +2739,7 @@ function pageLoans(){
     h+=BLANK+L(sp(' CURRENTLY OUT ON LOAN:','m'));
     state.loans.out.forEach(p=>h+=L(sp('  '+p.name+' - RETURNS NEXT SEASON','w')));
   }
-  h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="go(321)"> BROWSE LOAN MARKET — PAGE 321 </span>`);
+  h+=BLANK+L(sp(' ','w')+`<span class="lnk by" onclick="go(311)"> BROWSE LOAN MARKET — PAGE 311 </span>`);
   return h;
 }
 function pageLoanMarket(){
@@ -2728,7 +2767,7 @@ function pageLoanMarket(){
       +sp(padl(p.age,4),'c')+sp(' '+pad(TEAMS[t].c,4),'c')
       +sp(padl(fee,5)+'M','y')+'</span>');
   });
-  h+=BLANK+L(sp(' SEND PLAYERS OUT ON LOAN: PAGE 318','m'));
+  h+=BLANK+L(sp(' SEND PLAYERS OUT ON LOAN: PAGE 310','m'));
   return h;
 }
 
@@ -2776,7 +2815,7 @@ function pageManagerProfile(){
     +sp('  W','g')+sp(String(c.w),'g')+sp(' D','y')+sp(String(c.d),'y')+sp(' L','rd')+sp(String(c.l),'rd'));
   h+=L(sp(' WIN RATE: ','w')+sp(winPct+'%',winPct>=50?'g':winPct>=35?'y':'rd'));
   h+=L(sp(' GOALS: ','w')+sp(c.gf+' FOR, '+c.ga+' AGAINST','c'));
-  h+=BLANK+L(sp(' PLAYER CAREER STATS: HALL OF FAME P.322','m'));
+  h+=BLANK+L(sp(' PLAYER CAREER STATS: HALL OF FAME P.315','m'));
   return h;
 }
 function pageHallOfFame(){
@@ -2823,7 +2862,7 @@ function pageSaveGame(){
   h+=L(sp(' ','w')+`<span class="lnk by" onclick="exportSave()"> EXPORT SAVE FILE </span>`)+BLANK;
   h+=L(sp(' RESTORE FROM A PREVIOUSLY SAVED FILE:','w'));
   h+=L(sp(' ','w')+`<span class="lnk by" onclick="triggerImport()"> IMPORT SAVE FILE </span>`)+BLANK;
-  h+=L(sp(' WIPE + START OVER: PAGE 309','m'));
+  h+=L(sp(' WIPE + START OVER: PAGE 324','m'));
   return h;
 }
 
